@@ -32,7 +32,7 @@ verify:
 	$(PYTHON) scripts/verify_idempotencia.py --fecha $(FECHA) || $(PYTHON) -m src.transform.indicadores --fecha $(FECHA)
 
 dashboard:
-	quarto render dashboard --to html
+	PYTHONPATH=. quarto render dashboard --to html
 
 init-db:
 	psql "host=localhost port=5433 dbname=ambiental user=ambiental password=ambiental_dev" -f sql/01_schema_postgis.sql

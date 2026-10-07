@@ -49,6 +49,8 @@ jobs:
         run: pytest tests/ -q
       - name: Render dashboard
         run: quarto render dashboard --to html
+        env:
+          PYTHONPATH: ${{ github.workspace }}
       - uses: actions/upload-pages-artifact@v3
         with: {path: dashboard/_site}
 

@@ -14,5 +14,5 @@ with DAG(
 ) as dag:
     BashOperator(
         task_id="render_quarto",
-        bash_command="quarto render dashboard --to html",
+        bash_command="cd /opt/src && PYTHONPATH=/opt/src quarto render dashboard --to html",
     )

@@ -18,6 +18,7 @@ airflow.db
 # Quarto
 dashboard/_site/
 dashboard/.quarto/
+dashboard/mapa_tmp.html
 _freeze/
 # OS / IDE
 .DS_Store

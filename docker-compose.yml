@@ -75,6 +75,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags:ro
       - ./src:/opt/src/src:ro
+      - ./dashboard:/opt/src/dashboard:ro
       - ./lake:/opt/src/lake
       - ./sql:/opt/src/sql:ro
       - airflowdata:/opt/airflow

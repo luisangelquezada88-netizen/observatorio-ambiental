@@ -1,0 +1,61 @@
+name: pipeline-diario
+
+on:
+  schedule:
+    - cron: "15 6 * * *"   # 06:15 UTC diario
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["src/**", "dashboard/**", "tests/**"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  ingesta-transform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - uses: quarto-dev/quarto-actions/setup@v2
+      - run: pip install -r requirements.txt
+      - name: Fecha (ayer UTC)
+        run: echo "FECHA=$(date -u -d 'yesterday' +%F)" >> $GITHUB_ENV
+      - name: Ingesta Open-Meteo x3
+        run: |
+          python -m src.extract.openmeteo_meteorologia --fecha "$FECHA"
+          python -m src.extract.openmeteo_calidad_aire --fecha "$FECHA"
+          python -m src.extract.openmeteo_hidrologia --fecha "$FECHA"
+      - name: Fuentes anuales (solo día 1 del mes)
+        if: github.event.schedule == '' || true
+        run: |
+          YEAR=$(date -u -d 'yesterday' +%Y)
+          PREV=$((YEAR-1))
+          if [ "$(date -u +%d)" = "01" ]; then
+            python -m src.extract.owid_co2 --year "$PREV" || true
+            python -m src.extract.gfw_deforestacion --year "$PREV" || true
+          fi
+        env: {GFW_API_KEY: "${{ secrets.GFW_API_KEY }}"}
+      - name: Transform
+        run: python -m src.transform.indicadores --fecha "$FECHA"
+      - name: Tests rápidos
+        run: pytest tests/ -q
+      - name: Render dashboard
+        run: quarto render dashboard --to html
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: dashboard/_site}
+
+  deploy:
+    needs: ingesta-transform
+    runs-on: ubuntu-latest
+    environment: {name: github-pages, url: "${{ steps.deployment.outputs.page_url }}"}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

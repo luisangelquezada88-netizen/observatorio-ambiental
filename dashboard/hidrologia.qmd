@@ -1,0 +1,23 @@
+---
+title: "Hidrología"
+lang: es
+---
+
+```{python}
+from pathlib import Path
+import pandas as pd
+import plotly.express as px
+
+files = sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/indicador_diario.parquet"))
+df = pd.concat([pd.read_parquet(f) for f in files]) if files else pd.DataFrame()
+if not df.empty:
+    cu = df.dropna(subset=["caudal_m3s"]).sort_values("caudal_m3s", ascending=False).head(20)
+    fig = px.bar(cu, x="caudal_m3s", y="ciudad", title="Top 20 caudal GloFAS (m³/s)",
+                 labels={"caudal_m3s":"Caudal","ciudad":"Punto"})
+    fig.show()
+    display(cu[["ciudad","pais","caudal_m3s","caudal_medio_m3s","caudal_max_m3s"]])
+else:
+    print("Sin datos de hidrología todavía.")
+```
+
+> GloFAS es malla gruesa: útil para comparar cuencas, no para crecidas locales (ver `docs/decisiones.md` D-02).

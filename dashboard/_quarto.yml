@@ -1,0 +1,36 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Observatorio Ambiental"
+  description: "Plataforma de datos ambientales y biofísicos — 5 pilares, datos abiertos"
+  lang: es
+  navbar:
+    background: primary
+    search: false
+    left:
+      - href: index.qmd
+        text: Resumen
+      - href: calidad_aire.qmd
+        text: Calidad del aire
+      - href: hidrologia.qmd
+        text: Hidrología
+      - href: meteorologia.qmd
+        text: Meteorología
+      - href: deforestacion.qmd
+        text: Deforestación
+      - href: emisiones.qmd
+        text: Emisiones
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    embed-resources: true
+
+execute:
+  freeze: auto
+  echo: false
+  warning: false

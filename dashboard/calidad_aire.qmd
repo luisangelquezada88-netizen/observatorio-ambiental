@@ -1,0 +1,24 @@
+---
+title: "Calidad del aire"
+lang: es
+---
+
+```{python}
+from pathlib import Path
+import pandas as pd
+import plotly.express as px
+
+files = sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/indicador_diario.parquet"))
+df = pd.concat([pd.read_parquet(f) for f in files]) if files else pd.DataFrame()
+if not df.empty:
+    top = df.dropna(subset=["pm25_media"]).sort_values("pm25_media", ascending=False).head(20)
+    fig = px.bar(top, x="pm25_media", y="ciudad", color="categoria_pm25_oms",
+                 title="Top 20 PM2.5 (µg/m³) — última fecha disponible",
+                 labels={"pm25_media":"PM2.5 media","ciudad":"Ciudad"})
+    fig.show()
+    display(df.groupby("categoria_pm25_oms")["punto_id"].count().rename("n_puntos"))
+else:
+    print("Sin datos de calidad del aire todavía.")
+```
+
+> Umbrales OMS (guía 2021): PM2.5 24h ≤ 15 µg/m³. Categorías del pipeline en `src/transform/indicadores.py`.

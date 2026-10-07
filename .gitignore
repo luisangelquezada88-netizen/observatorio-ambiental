@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+# Lake (datos locales, no versionar)
+lake/raw/
+lake/curated/
+lake/serving/
+*.parquet
+*.duckdb
+# Airflow
+logs/
+plugins/
+airflow.cfg
+airflow.db
+# Quarto
+dashboard/_site/
+dashboard/.quarto/
+_freeze/
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

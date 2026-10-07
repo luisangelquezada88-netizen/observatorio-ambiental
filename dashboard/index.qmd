@@ -1,0 +1,50 @@
+---
+title: "Observatorio Ambiental — Resumen LatAm"
+lang: es
+---
+
+## Panorama de ayer
+
+Datos abiertos globales con foco en Latinoamérica: calidad del aire (CAMS),
+meteorología (ERA5/forecast), hidrología (GloFAS), deforestación (GFW) y CO₂ (OWID).
+
+```{python}
+from pathlib import Path
+import pandas as pd
+
+diario = None
+for f in sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/indicador_diario.parquet")):
+    diario = pd.read_parquet(f)
+print(f"filas: {len(diario) if diario is not None else 0}")
+if diario is not None and not diario.empty:
+    fecha = diario["fecha"].max()
+    sub = diario[diario["fecha"] == fecha]
+    print(f"fecha: {fecha} | puntos: {sub['punto_id'].nunique()} | "
+          f"PM2.5 mediana: {sub['pm25_media'].median():.1f} µg/m³ | "
+          f"T media: {sub['temp_media_c'].median():.1f} °C | "
+          f"precip total: {sub['precipitacion_mm'].sum():.1f} mm")
+    display(sub[["ciudad","pais","temp_media_c","precipitacion_mm","pm25_media","categoria_pm25_oms","caudal_m3s"]].head(15))
+else:
+    print("Sin datos aún: ejecuta make extract transform (ver README).")
+```
+
+```{python}
+#| label: mapa-puntos
+#| fig-cap: "Red de monitoreo: ~150 puntos (LatAm + mundo)"
+from src.config.puntos_monitoreo import PUNTOS
+import folium
+
+m = folium.Map(location=[-15, -60], zoom_start=3, tiles="CartoDB positron")
+for p in PUNTOS:
+    color = "blue" if p["region"] == "LatAm" else "gray"
+    folium.CircleMarker([p["lat"], p["lon"]], radius=3, color=color,
+                        popup=f"{p['ciudad']} ({p['pais']})").add_to(m)
+m.save("mapa_tmp.html")
+print(f"{len(PUNTOS)} puntos renderizados (ver mapa interactivo abajo en HTML completo).")
+m
+```
+
+::: {.callout-note}
+El mapa Folium completo y las 5 páginas de pilares se generan con `quarto render dashboard`.
+GitHub Pages publica el resultado cada día vía Actions.
+:::

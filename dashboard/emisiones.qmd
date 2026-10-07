@@ -1,0 +1,24 @@
+---
+title: "Emisiones CO₂"
+lang: es
+---
+
+```{python}
+from pathlib import Path
+import pandas as pd
+import plotly.express as px
+
+files = sorted(Path("../lake/raw/co2").glob("fecha=*/*.parquet"))
+df = pd.concat([pd.read_parquet(f) for f in files]) if files else pd.DataFrame()
+if not df.empty:
+    top = df.sort_values("co2", ascending=False).head(20)
+    fig = px.bar(top, x="co2", y="country", title="CO₂ anual (Mt, OWID)",
+                 labels={"co2":"Mt CO₂","country":"País"})
+    fig.show()
+    fig2 = px.scatter(df, x="co2_per_capita", y="co2", size="population", color="country",
+                      title="CO₂ total vs per cápita", log_x=True, log_y=True)
+    fig2.show()
+    display(top[["country","iso3","anio","co2","co2_per_capita"]])
+else:
+    print("Sin datos CO₂: ejecuta python -m src.extract.owid_co2 --year 2023")
+```

@@ -1,0 +1,5 @@
+body { font-family: "Segoe UI", system-ui, sans-serif; }
+.navbar { font-weight: 600; }
+.card-metrica { border-left: 4px solid #2c7fb8; padding: 0.5rem 1rem; margin-bottom: 1rem;
+  background: #f7fbff; border-radius: 6px; }
+table { font-size: 0.9rem; }

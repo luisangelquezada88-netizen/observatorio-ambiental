@@ -1,0 +1,13 @@
+# Dependencias modo dual (Airflow local == GitHub Actions).
+# Fijar versiones mínimas compatibles con Python 3.11/3.12.
+requests>=2.31
+pandas>=2.2
+pyarrow>=15.0
+duckdb>=0.10.0
+psycopg[binary]>=3.1
+sqlalchemy>=2.0
+geoalchemy2>=0.14
+shapely>=2.0
+plotly>=5.22
+folium>=0.16
+pytest>=8.0

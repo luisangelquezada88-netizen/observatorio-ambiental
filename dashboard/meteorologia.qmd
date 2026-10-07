@@ -1,0 +1,22 @@
+---
+title: "Meteorología"
+lang: es
+---
+
+```{python}
+from pathlib import Path
+import pandas as pd
+import plotly.express as px
+
+files = sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/indicador_diario.parquet"))
+df = pd.concat([pd.read_parquet(f) for f in files]) if files else pd.DataFrame()
+if not df.empty:
+    fig1 = px.scatter(df, x="temp_media_c", y="precipitacion_mm", color="region",
+                      hover_name="ciudad", title="Temperatura vs precipitación por punto")
+    fig1.show()
+    fig2 = px.bar(df.sort_values("precipitacion_mm", ascending=False).head(20),
+                  x="precipitacion_mm", y="ciudad", title="Top 20 precipitación (mm/día)")
+    fig2.show()
+else:
+    print("Sin datos de meteorología todavía.")
+```

@@ -180,6 +180,47 @@ figp.update_layout(height=520, geo=dict(showframe=False, showcoastlines=True))
 figp.show()
 ```
 
+## Evolución diaria (slider temporal)
+
+Arrastra el control para animar el PM2.5 de los últimos 14 días. El historial se acumula solo en cada run (D-12).
+
+```{python}
+#| label: slider-temporal
+#| fig-cap: "PM2.5 animado día a día (bandas AQI)"
+from folium.plugins import TimestampedGeoJson
+
+hist = df.dropna(subset=["pm25_media"]).copy()
+fechas14 = sorted(hist["fecha"].unique())[-14:]
+hh = hist[hist["fecha"].isin(fechas14)]
+
+feats = []
+for _, p in hh.sort_values("fecha").iterrows():
+    c = OMS.get(p["categoria_pm25_aqi"], "#6c757d")
+    feats.append({
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [float(p["lon"]), float(p["lat"])]},
+        "properties": {
+            "time": f"{p['fecha']}T00:00:00",
+            "popup": f"<b>{p['ciudad']}</b> ({p['fecha']}): {p['pm25_media']:.1f} µg/m³",
+            "icon": "circle",
+            "iconstyle": {"fillColor": c, "fillOpacity": 0.85, "color": c,
+                          "radius": 5 + min(float(p["pm25_media"]), 150) / 15},
+        },
+    })
+
+mt = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True)
+folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(mt)
+folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(mt)
+TimestampedGeoJson(
+    {"type": "FeatureCollection", "features": feats},
+    period="P1D", transition_time=600, loop=False, auto_play=False,
+    add_last_point=False, date_options="YYYY-MM-DD",
+).add_to(mt)
+Fullscreen().add_to(mt)
+folium.LayerControl(collapsed=False).add_to(mt)
+mt
+```
+
 ## Peor aire en LatAm hoy
 
 ```{python}

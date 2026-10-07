@@ -9,7 +9,7 @@ on:
     paths: ["src/**", "dashboard/**", "tests/**", "requirements.txt", "dags/**", "sql/**"]
 
 permissions:
-  contents: read
+  contents: write   # Necesario para persistir lake/serving (historial, D-12)
   pages: write
   id-token: write
 
@@ -47,6 +47,16 @@ jobs:
         run: python -m src.transform.indicadores --fecha "$FECHA"
       - name: Tests rápidos
         run: pytest tests/ -q
+      - name: Persistir historial (lake/serving → repo)
+        # El runner es efímero: sin este commit no hay serie temporal para el
+        # slider (D-12). No genera loop: lake/** no está en los paths del trigger.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main || true
+          git add lake/serving
+          git diff --cached --quiet || git commit -m "Data: historial serving $(date -u +%F)"
+          git push origin HEAD:main
       - name: Render dashboard
         run: quarto render dashboard --to html
         env:

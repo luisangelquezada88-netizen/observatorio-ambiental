@@ -68,3 +68,10 @@
 - Corrección: columna `categoria_pm25_oms` → `categoria_pm25_aqi`
   (migración `sql/03_aqi_rename.sql`), etiquetas "AQI (EE. UU.)" y línea verde
   OMS-15 en gráficos. Detectado en revisión pre-fase-2.
+
+## D-12 — Historial versionado para el slider temporal (2026-10-07)
+- El runner de Actions es efímero: sin persistencia no hay serie temporal.
+  El workflow commitea `lake/serving` al repo en cada run (~30 KB/día).
+- `lake/serving/**/*.parquet` sale de `.gitignore` (negación); raw/curated
+  siguen ignorados. No hay loop infinito: `lake/**` no está en el trigger.
+- Semilla inicial: backfill manual de 4 días; desde ahí el cron acumula solo.

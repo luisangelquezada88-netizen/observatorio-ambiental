@@ -4,11 +4,11 @@ __pycache__/
 .venv/
 venv/
 .env
-# Lake (datos locales, no versionar)
+# Lake: raw/curated locales; serving versionado como historial (slider, D-12)
 lake/raw/
 lake/curated/
-lake/serving/
 *.parquet
+!lake/serving/**/*.parquet
 *.duckdb
 # Airflow
 logs/

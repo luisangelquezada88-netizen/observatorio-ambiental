@@ -37,5 +37,9 @@ with DAG(
         task_id="load_postgis",
         bash_command="python -m src.load.postgis --fecha {{ ds }}",
     )
+    superficie = BashOperator(
+        task_id="superficie_idw",
+        bash_command="python -m src.transform.superficie_idw --fecha {{ ds }}",
+    )
 
-    [meteo, aire, hidro] >> transform >> load
+    [meteo, aire, hidro] >> transform >> [load, superficie]

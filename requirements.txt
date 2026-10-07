@@ -10,6 +10,7 @@ geoalchemy2>=0.14
 shapely>=2.0
 plotly>=5.22
 folium>=0.16
+matplotlib>=3.8
 jupyter>=1.0
 pyyaml>=6.0
 pytest>=8.0

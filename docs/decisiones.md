@@ -75,3 +75,9 @@
 - `lake/serving/**/*.parquet` sale de `.gitignore` (negación); raw/curated
   siguen ignorados. No hay loop infinito: `lake/**` no está en el trigger.
 - Semilla inicial: backfill manual de 4 días; desde ahí el cron acumula solo.
+
+## D-13 — Superficie IDW de PM2.5 (2026-10-07)
+- IDW p=2, malla 0.5° (bbox −56…33/−120…−30), corte 1300 km; raster en bandas
+  AQI para coherencia punto↔raster; validación leave-one-out publicada (RMSE).
+- Límites: ignora barreras orográficas (Andes) y no enmascara costa; se muestran,
+  no se ocultan. PNG ~200 KB/día dentro de `lake/serving` (entra al historial).

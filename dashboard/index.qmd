@@ -87,6 +87,15 @@ folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(m)
 folium.TileLayer(tiles=ESRI_CALLES, attr="Esri", name="Esri calles").add_to(m)
 folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(m)
 
+overlay_path = Path(f"../lake/serving/superficies/fecha={ult}/pm25.png")
+if overlay_path.exists():
+    g_idw = folium.FeatureGroup(name="Superficie IDW · PM2.5")
+    folium.raster_layers.ImageOverlay(
+        str(overlay_path), bounds=[[-56, -120], [33, -30]],
+        opacity=0.65, name="IDW PM2.5",
+    ).add_to(g_idw)
+    g_idw.add_to(m)
+
 g_aire = folium.FeatureGroup(name="Aire · PM2.5")
 mc_a = MarkerCluster().add_to(g_aire)
 for _, p in base.dropna(subset=["pm25_media"]).iterrows():
@@ -220,6 +229,26 @@ Fullscreen().add_to(mt)
 folium.LayerControl(collapsed=False).add_to(mt)
 mt
 ```
+
+## Método e incertidumbre (IDW)
+
+```{python}
+#| label: metodo-idw
+#| output: asis
+import json
+
+meta_path = Path(f"../lake/serving/superficies/fecha={ult}/meta.json")
+if meta_path.exists():
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    print(f"""<div class="kpi-row">
+<div class="kpi kpi-aire"><div class="kpi-valor">{meta['rmse_loo_ugm3']}<span class="kpi-unidad">µg/m³</span></div><div class="kpi-etiqueta">RMSE leave-one-out · {meta['n_puntos']} estaciones</div></div>
+<div class="kpi kpi-gris"><div class="kpi-valor">IDW p={meta['p']}</div><div class="kpi-etiqueta">Malla 0.5° · corte {meta['corte_km']:.0f} km</div></div>
+</div>""")
+else:
+    print("> Superficie aún no generada para esta fecha (corre `superficie_idw`).")
+```
+
+Interpolación por distancia inversa desde las estaciones (malla 0.5°, corte 1300 km): ignora barreras como los Andes y no enmascara costa — ver límites en D-13. El RMSE se calcula re-interpolando cada estación sin ella misma.
 
 ## Peor aire en LatAm hoy
 

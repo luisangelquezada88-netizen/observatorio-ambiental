@@ -45,6 +45,8 @@ jobs:
         env: {GFW_API_KEY: "${{ secrets.GFW_API_KEY }}"}
       - name: Transform
         run: python -m src.transform.indicadores --fecha "$FECHA"
+      - name: Superficie IDW
+        run: python -m src.transform.superficie_idw --fecha "$FECHA"
       - name: Tests rápidos
         run: pytest tests/ -q
       - name: Persistir historial (lake/serving → repo)

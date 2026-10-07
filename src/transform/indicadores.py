@@ -56,6 +56,12 @@ def _leer(con, patron: str, etiqueta: str):
 
 
 def _categoria_pm25(v):
+    """Bandas EPA (AQI EE. UU. para PM2.5 24h), NO categorías OMS.
+
+    La OMS 2021 solo fija guía 24h (15 µg/m³) + objetivos intermedios
+    (25/37.5/50/75). Estas bandas son los breakpoints del AQI y se
+    etiquetan como tales en el dashboard (D-11).
+    """
     if v is None or (isinstance(v, float) and pd.isna(v)):
         return None
     if v <= 12:
@@ -137,7 +143,7 @@ def transformar(fecha: str, lake: str | Path = "lake") -> dict:
         oro["fecha"] = oro["fecha"].fillna(fecha)
         # Contrato estable: fecha siempre string YYYY-MM-DD (evita timestamp vs partition).
         oro["fecha"] = pd.to_datetime(oro["fecha"]).dt.strftime("%Y-%m-%d")
-        oro["categoria_pm25_oms"] = oro["pm25_media"].apply(_categoria_pm25) if "pm25_media" in oro.columns else None
+        oro["categoria_pm25_aqi"] = oro["pm25_media"].apply(_categoria_pm25) if "pm25_media" in oro.columns else None
 
         d1 = lake / "serving" / "indicador_diario" / f"fecha={fecha}"
         d1.mkdir(parents=True, exist_ok=True)

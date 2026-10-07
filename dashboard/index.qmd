@@ -37,7 +37,7 @@ print(f"""<div class="hero hero-tablero">
 #| label: kpis
 #| output: asis
 pm = latam["pm25_media"].dropna()
-buena = latam[latam["categoria_pm25_oms"] == "Buena"].shape[0]
+buena = latam[latam["categoria_pm25_aqi"] == "Buena"].shape[0]
 tmed = latam["temp_media_c"].median()
 prec = latam["precipitacion_mm"].sum()
 q = base.dropna(subset=["caudal_m3s"])
@@ -70,7 +70,7 @@ Conmuta las capas **Aire · Clima · Agua** (arriba a la derecha) y cambia el fo
 #| fig-cap: "Visor maestro multicapa: PM2.5 por categoría OMS, temperatura y caudal (log)"
 import math
 import folium
-from folium.plugins import MarkerCluster, Fullscreen
+from folium.plugins import MarkerCluster, Fullscreen, HeatMap
 import branca.colormap as cm
 
 ESRI_CALLES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
@@ -92,10 +92,10 @@ mc_a = MarkerCluster().add_to(g_aire)
 for _, p in base.dropna(subset=["pm25_media"]).iterrows():
     folium.CircleMarker(
         [p["lat"], p["lon"]], radius=4 + min(float(p["pm25_media"]), 150) / 18,
-        color=OMS.get(p["categoria_pm25_oms"], "#6c757d"), fill=True, fill_opacity=0.8,
+        color=OMS.get(p["categoria_pm25_aqi"], "#6c757d"), fill=True, fill_opacity=0.8,
         tooltip=f"{p['ciudad']}: PM2.5 {p['pm25_media']:.1f} µg/m³",
         popup=popup(p, [("PM2.5", f"{p['pm25_media']:.1f} µg/m³"),
-                        ("Categoría", p["categoria_pm25_oms"]), ("AQI US máx", f1(p["us_aqi_max"], 0))]),
+                        ("Categoría", p["categoria_pm25_aqi"]), ("AQI US máx", f1(p["us_aqi_max"], 0))]),
     ).add_to(mc_a)
 g_aire.add_to(m)
 
@@ -125,6 +125,13 @@ for _, p in base.dropna(subset=["caudal_m3s"]).iterrows():
     ).add_to(mc_h)
 g_agua.add_to(m)
 
+hg = folium.FeatureGroup(name="Calor · PM2.5 (heatmap)")
+HeatMap(
+    [[p["lat"], p["lon"], float(p["pm25_media"])] for _, p in base.dropna(subset=["pm25_media"]).iterrows()],
+    radius=18, blur=12, max_zoom=6, min_opacity=0.35,
+).add_to(hg)
+hg.add_to(m)
+
 col_temp.caption = "Temp. media °C"
 col_temp.add_to(m)
 Fullscreen().add_to(m)
@@ -142,6 +149,8 @@ cru = base.dropna(subset=["temp_media_c", "pm25_media"])
 fig1 = px.scatter(cru, x="temp_media_c", y="pm25_media", color="region", hover_name="ciudad",
                   title="¿Calor y contaminación van juntos? Temp. media vs PM2.5",
                   labels={"temp_media_c": "Temp. media °C", "pm25_media": "PM2.5 µg/m³"})
+fig1.add_hline(y=15, line_dash="dash", line_color="#2d6a4f",
+               annotation_text="Guía OMS 24h: 15 µg/m³")
 fig1.update_layout(height=420)
 fig1.show()
 
@@ -153,10 +162,28 @@ fig2.update_layout(height=420)
 fig2.show()
 ```
 
+## PM2.5 por país (coropleta)
+
+```{python}
+#| label: coropleta-pais
+#| fig-cap: "PM2.5 media por país — las bandas del visor usan breakpoints AQI (EPA)"
+import plotly.express as px
+
+pfiles = sorted(Path("../lake/serving/indicador_pais").glob("fecha=*/indicador_pais.parquet"))
+pp = pd.concat([pd.read_parquet(f) for f in pfiles], ignore_index=True) if pfiles else pd.DataFrame()
+ppu = pp[pp["fecha"] == ult].copy() if not pp.empty else pp
+figp = px.choropleth(ppu, locations="iso3", color="pm25_media_pais", hover_name="pais",
+                     color_continuous_scale="YlOrRd",
+                     title="PM2.5 media por país (µg/m³)",
+                     labels={"pm25_media_pais": "PM2.5 media", "iso3": "País"})
+figp.update_layout(height=520, geo=dict(showframe=False, showcoastlines=True))
+figp.show()
+```
+
 ## Peor aire en LatAm hoy
 
 ```{python}
 #| label: top-aire
 top = latam.dropna(subset=["pm25_media"]).sort_values("pm25_media", ascending=False).head(10)
-display(top[["ciudad", "pais", "pm25_media", "categoria_pm25_oms", "us_aqi_max"]])
+display(top[["ciudad", "pais", "pm25_media", "categoria_pm25_aqi", "us_aqi_max"]])
 ```

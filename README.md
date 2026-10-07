@@ -2,7 +2,9 @@
 
 > 🌍 **Demo en vivo:** https://luisangelquezada88-netizen.github.io/observatorio-ambiental/
 
-El presente repositorio contiene un **observatorio ambiental** que monitorea a diario **150 puntos del planeta (60% Latinoamérica)** y mide indicadores como **PM2.5 y calidad del aire (categorías OMS), temperatura, precipitación, viento y caudal de ríos**, con tableros geográficos interactivos, tarjetas de indicadores y análisis cruzado clima-contaminación.
+El presente repositorio contiene un **observatorio ambiental** que monitorea a diario **150 puntos del planeta (60% Latinoamérica)** y mide indicadores como **PM2.5 y
+calidad del aire (bandas AQI), temperatura, precipitación, viento y caudal de
+ríos**, con tableros geográficos interactivos, tarjetas de indicadores y análisis cruzado clima-contaminación.
 
 Está respaldado por una *arquitectura de datos end-to-end* con automatización de ingesta y almacenamiento: extractores resilientes anti-rate-limit, lago Parquet particionado como fuente de verdad, validación y agregación con DuckDB, carga idempotente a **PostGIS**, orquestación con **Apache Airflow** y despliegue diario totalmente automático a GitHub Pages vía **GitHub Actions** — con **costo operativo cero**.
 
@@ -18,7 +20,7 @@ Detalle del plan en [`plan.md`](plan.md).
 | Ozono (O₃) | µg/m³ | Open-Meteo Air Quality | Contaminante fotoquímico; sube con calor y sol | Diaria |
 | Dióxido de nitrógeno (NO₂) | µg/m³ | Open-Meteo Air Quality | Trazador de tráfico y combustión | Diaria |
 | AQI US máx | Índice 0–500 | Open-Meteo Air Quality | Índice compuesto de EE. UU.; 100 = límite saludable | Diaria |
-| Categoría OMS | Etiqueta | Derivada de PM2.5 | Buena → Moderada → Dañina → Peligrosa (guía OMS 2021, 24h ≤ 15 µg/m³) | Diaria |
+| Categoría AQI (EPA) | Etiqueta | Derivada de PM2.5 | Buena → Peligrosa (breakpoints EPA; guía OMS 24h ≤ 15 µg/m³ como referencia) | Diaria |
 | Temp. máx / mín / media | °C | Open-Meteo Forecast + ERA5 | Resumen térmico del día por punto | Diaria |
 | Precipitación | mm/día | Open-Meteo Forecast + ERA5 | Lluvia acumulada del día | Diaria |
 | Viento máx / ráfaga | km/h | Open-Meteo Forecast + ERA5 | Viento sostenido y ráfaga máxima | Diaria |

@@ -61,3 +61,10 @@
   incompatibles) y > solo-separado (sin análisis cruzado).
 - Tiles: OSM + Esri (calles/satélite); CartoDB exige API key y queda vetado.
 - KPIs como HTML precalculado (cero JS, apto para sitio estático).
+
+## D-11 — Las "categorías OMS" eran breakpoints EPA (2026-10-07)
+- Los cortes ≤12/35.4/55.4/150.4/250.4 son del AQI estadounidense, no de la OMS
+  (la OMS 2021 solo da guía 24h ≤ 15 + objetivos 25/37.5/50/75).
+- Corrección: columna `categoria_pm25_oms` → `categoria_pm25_aqi`
+  (migración `sql/03_aqi_rename.sql`), etiquetas "AQI (EE. UU.)" y línea verde
+  OMS-15 en gráficos. Detectado en revisión pre-fase-2.

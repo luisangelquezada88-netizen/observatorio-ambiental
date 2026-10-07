@@ -39,7 +39,7 @@ El tablero se actualiza solo cada día (06:15 UTC) con los datos de ayer vía Gi
 
 ## Indicadores
 
-**Aire (categorías OMS sobre PM2.5 media diaria):** Buena ≤ 12 · Moderada ≤ 35.4 · Dañina (sensible) ≤ 55.4 · Dañina ≤ 150.4 · Muy dañina ≤ 250.4 · Peligrosa > 250.4 µg/m³. Guía OMS 24h: ≤ 15 µg/m³.
+**Aire (bandas AQI sobre PM2.5 media diaria):** Buena ≤ 12 · Moderada ≤ 35.4 · Dañina (sensibles) ≤ 55.4 · Dañina ≤ 150.4 · Muy dañina ≤ 250.4 · Peligrosa > 250.4 µg/m³. Son los breakpoints del AQI de la EPA (EE. UU.), no categorías OMS: la OMS 2021 solo fija guía 24h ≤ 15 µg/m³ (línea verde en los gráficos) y objetivos intermedios 25/37.5/50/75 (D-11).
 
 **Clima:** temperaturas en °C, precipitación en mm/día, viento en km/h. Agregado país: temperatura media, precipitación total.
 

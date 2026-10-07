@@ -75,7 +75,7 @@ def cargar(fecha: str, lake: str | Path = "lake") -> dict:
         if diario is not None and not diario.empty:
             cols = ["punto_id", "fecha", "temp_max_c", "temp_min_c", "temp_media_c", "precipitacion_mm",
                     "viento_max_kmh", "pm25_media", "pm25_max", "pm10_media", "o3_media", "no2_media",
-                    "us_aqi_media", "us_aqi_max", "categoria_pm25_oms", "caudal_m3s", "caudal_medio_m3s", "caudal_max_m3s"]
+                    "us_aqi_media", "us_aqi_max", "categoria_pm25_aqi", "caudal_m3s", "caudal_medio_m3s", "caudal_max_m3s"]
             cols = [c for c in cols if c in diario.columns]
             cur.executemany(
                 f"INSERT INTO indicador_diario ({','.join(cols)}) VALUES ({','.join(['%s'] * len(cols))})",

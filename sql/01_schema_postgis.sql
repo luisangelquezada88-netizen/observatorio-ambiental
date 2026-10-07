@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS indicador_diario (
   no2_media DOUBLE PRECISION,
   us_aqi_media DOUBLE PRECISION,
   us_aqi_max DOUBLE PRECISION,
-  categoria_pm25_oms TEXT,
+  categoria_pm25_aqi TEXT,
   caudal_m3s DOUBLE PRECISION,
   caudal_medio_m3s DOUBLE PRECISION,
   caudal_max_m3s DOUBLE PRECISION,

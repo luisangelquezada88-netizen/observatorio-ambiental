@@ -55,7 +55,7 @@ Color por categoría OMS 2021, tamaño por concentración.
 
 ```{python}
 #| label: visor-aire
-#| fig-cap: "PM2.5 por punto (categoría OMS). Referencia: guía 24h ≤ 15 µg/m³"
+#| fig-cap: "PM2.5 por punto (bandas AQI EPA; línea de referencia: guía OMS 24h ≤ 15 µg/m³)"
 import folium
 from folium.plugins import MarkerCluster, Fullscreen
 
@@ -70,8 +70,8 @@ mc = MarkerCluster(name="PM2.5").add_to(m)
 for _, p in base.dropna(subset=["pm25_media"]).iterrows():
     folium.CircleMarker(
         [p["lat"], p["lon"]], radius=4 + min(float(p["pm25_media"]), 150) / 18,
-        color=OMS.get(p["categoria_pm25_oms"], "#6c757d"), fill=True, fill_opacity=0.85,
-        tooltip=f"{p['ciudad']}: {p['pm25_media']:.1f} µg/m³ ({p['categoria_pm25_oms']})",
+        color=OMS.get(p["categoria_pm25_aqi"], "#6c757d"), fill=True, fill_opacity=0.85,
+        tooltip=f"{p['ciudad']}: {p['pm25_media']:.1f} µg/m³ ({p['categoria_pm25_aqi']})",
         popup=folium.Popup(
             f"<b>{p['ciudad']}</b> ({p['pais']})<table>"
             f"<tr><td>PM2.5</td><td><b>{p['pm25_media']:.1f} µg/m³</b></td></tr>"
@@ -81,7 +81,7 @@ for _, p in base.dropna(subset=["pm25_media"]).iterrows():
             max_width=280),
     ).add_to(mc)
 legend = ("<div style='position:fixed;bottom:20px;left:20px;z-index:9999;background:white;"
-          "padding:8px 10px;border-radius:8px;font-size:12px' class='map-legend'><b>PM2.5</b><br>" +
+          "padding:8px 10px;border-radius:8px;font-size:12px' class='map-legend'><b>PM2.5 (AQI EE. UU.)</b><br>" +
           "".join(f"<span style='color:{c}'>●</span> {k}<br>" for k, c in OMS.items()) + "</div>")
 m.get_root().html.add_child(folium.Element(legend))
 Fullscreen().add_to(m)
@@ -96,17 +96,21 @@ m
 import plotly.express as px
 
 top = base.dropna(subset=["pm25_media"]).sort_values("pm25_media", ascending=False).head(20)
-fig1 = px.bar(top, x="pm25_media", y="ciudad", color="categoria_pm25_oms",
-              color_discrete_map=OMS, title="Top 20 PM2.5 (µg/m³)",
+fig1 = px.bar(top, x="pm25_media", y="ciudad", color="categoria_pm25_aqi",
+              color_discrete_map=OMS, title="Top 20 PM2.5 (µg/m³) · bandas AQI (EPA)",
               labels={"pm25_media": "PM2.5 media", "ciudad": "Ciudad"})
+fig1.add_vline(x=15, line_dash="dash", line_color="#2d6a4f",
+               annotation_text="Guía OMS 24h: 15 µg/m³")
 fig1.update_layout(height=560)
 fig1.show()
 
 fig2 = px.histogram(base.dropna(subset=["pm25_media"]), x="pm25_media", color="region",
                     nbins=30, title="Distribución de PM2.5 por región",
                     labels={"pm25_media": "PM2.5 µg/m³"})
+fig2.add_vline(x=15, line_dash="dash", line_color="#2d6a4f",
+               annotation_text="Guía OMS 24h: 15 µg/m³")
 fig2.update_layout(height=380)
 fig2.show()
 ```
 
-> Umbrales OMS (guía 2021): PM2.5 24h ≤ 15 µg/m³. Categorías calculadas en `src/transform/indicadores.py`.
+> Bandas de color: breakpoints del AQI (EPA EE. UU.). Línea verde: guía OMS 2021 (PM2.5 24h ≤ 15 µg/m³). Bandas calculadas en `src/transform/indicadores.py`.

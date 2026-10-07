@@ -11,15 +11,15 @@ import time
 from pathlib import Path
 
 import pandas as pd
-import requests
 
 from src.config.puntos_monitoreo import PUNTOS
+from src.extract._http import get_json
 
 API_URL = "https://flood-api.open-meteo.com/v1/flood"
 # La Flood API solo expone river_discharge (sin variantes mean/median/max/min).
 DAILY_VARS = "river_discharge"
-CHUNK = 25
-RETRIES = 4
+CHUNK = 20  # Bloques chicos + pausa: evita 429 en IPs compartidas (D-09).
+PAUSA_BLOQUES_SEG = 3
 
 
 def _fetch_chunk(lats: list[float], lons: list[float], fecha: str) -> list[dict]:
@@ -31,18 +31,8 @@ def _fetch_chunk(lats: list[float], lons: list[float], fecha: str) -> list[dict]
         "end_date": fecha,
         "timezone": "auto",
     }
-    last_err: Exception | None = None
-    for intento in range(1, RETRIES + 1):
-        try:
-            r = requests.get(API_URL, params=params, timeout=60)
-            r.raise_for_status()
-            data = r.json()
-            return data if isinstance(data, list) else [data]
-        except Exception as e:  # noqa: BLE001
-            last_err = e
-            print(f"[hidrologia] intento {intento} falló: {e}", flush=True)
-            time.sleep(2**intento)
-    raise RuntimeError(f"[hidrologia] API falló tras {RETRIES} intentos: {last_err}")
+    data = get_json(API_URL, params, "hidrologia")
+    return data if isinstance(data, list) else [data]
 
 
 def extraer(fecha: str, out_root: str | Path = "lake") -> Path:
@@ -77,6 +67,8 @@ def extraer(fecha: str, out_root: str | Path = "lake") -> Path:
                     }
                 )
         print(f"[hidrologia] bloque {i // CHUNK + 1}: {len(bloque)} puntos", flush=True)
+        if i + CHUNK < len(PUNTOS):
+            time.sleep(PAUSA_BLOQUES_SEG)  # Pacing anti-429 (D-09).
 
     df = pd.DataFrame(filas)
     destino = part / "hidrologia.parquet"

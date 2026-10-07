@@ -47,3 +47,9 @@
 - `fecha` en oro siempre string `YYYY-MM-DD` (`dt.strftime` en transform) y el
   load lee archivo concreto (no directorio Hive) para evitar el choque
   `timestamp vs string` de la columna de particion.
+
+## D-09 — 429 en CI por IP compartida de GitHub (2026-10-07)
+- Los runners de Actions comparten IPs de salida: Open-Meteo responde 429
+  aunque estemos bajo 10k calls/dia. En local no ocurre.
+- Mitigacion en `src/extract/_http.py`: respeta `Retry-After`, 6 intentos con
+  backoff 5s->180s + jitter. Bloques de 20 puntos + pausa de 3s entre bloques.

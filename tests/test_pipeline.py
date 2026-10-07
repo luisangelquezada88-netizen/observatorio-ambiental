@@ -62,7 +62,7 @@ def test_puntos_150():
 def test_cli_extractores_compilan():
     import py_compile
 
-    for m in ["src/extract/openmeteo_meteorologia.py", "src/extract/openmeteo_calidad_aire.py",
+    for m in ["src/extract/_http.py", "src/extract/openmeteo_meteorologia.py", "src/extract/openmeteo_calidad_aire.py",
               "src/extract/openmeteo_hidrologia.py", "src/extract/gfw_deforestacion.py",
               "src/extract/owid_co2.py", "src/transform/indicadores.py", "src/load/postgis.py"]:
         py_compile.compile(m, doraise=True)

@@ -10,14 +10,14 @@ import time
 from pathlib import Path
 
 import pandas as pd
-import requests
 
 from src.config.puntos_monitoreo import PUNTOS
+from src.extract._http import get_json
 
 API_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 HOURLY_VARS = "pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,us_aqi,european_aqi"
-CHUNK = 50
-RETRIES = 4
+CHUNK = 20  # Bloques chicos + pausa: evita 429 en IPs compartidas (D-09).
+PAUSA_BLOQUES_SEG = 3
 
 
 def _fetch_chunk(lats: list[float], lons: list[float], fecha: str) -> list[dict]:
@@ -29,18 +29,8 @@ def _fetch_chunk(lats: list[float], lons: list[float], fecha: str) -> list[dict]
         "end_date": fecha,
         "timezone": "auto",
     }
-    last_err: Exception | None = None
-    for intento in range(1, RETRIES + 1):
-        try:
-            r = requests.get(API_URL, params=params, timeout=60)
-            r.raise_for_status()
-            data = r.json()
-            return data if isinstance(data, list) else [data]
-        except Exception as e:  # noqa: BLE001
-            last_err = e
-            print(f"[calidad_aire] intento {intento} falló: {e}", flush=True)
-            time.sleep(2**intento)
-    raise RuntimeError(f"[calidad_aire] API falló tras {RETRIES} intentos: {last_err}")
+    data = get_json(API_URL, params, "calidad_aire")
+    return data if isinstance(data, list) else [data]
 
 
 def _agregar_diario(df_h: pd.DataFrame) -> pd.DataFrame:
@@ -101,6 +91,8 @@ def extraer(fecha: str, out_root: str | Path = "lake") -> Path:
                     }
                 )
         print(f"[calidad_aire] bloque {i // CHUNK + 1}: {len(bloque)} puntos", flush=True)
+        if i + CHUNK < len(PUNTOS):
+            time.sleep(PAUSA_BLOQUES_SEG)  # Pacing anti-429 (D-09).
 
     df_h = pd.DataFrame(horas)
     df = _agregar_diario(df_h) if not df_h.empty else pd.DataFrame()

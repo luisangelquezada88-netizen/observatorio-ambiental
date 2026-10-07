@@ -1,10 +1,8 @@
-# Observatorio Ambiental — Plataforma de Datos End-to-End
+# EcoPulso — Observatorio Ambiental y Plataforma de Datos End-to-End
 
 > 🌍 **Demo en vivo:** https://luisangelquezada88-netizen.github.io/observatorio-ambiental/
 
-El presente repositorio contiene un **observatorio ambiental** que monitorea a diario **150 puntos del planeta (60% Latinoamérica)** y mide indicadores como **PM2.5 y
-calidad del aire (bandas AQI), temperatura, precipitación, viento y caudal de
-ríos**, con tableros geográficos interactivos, tarjetas de indicadores y análisis cruzado clima-contaminación.
+El presente repositorio contiene **EcoPulso**, un observatorio ambiental que monitorea a diario **150 puntos del planeta (60% Latinoamérica)** y mide indicadores como **PM2.5 y calidad del aire (bandas AQI), temperatura, precipitación, viento y caudal de ríos**, con tableros geográficos interactivos, tarjetas de indicadores y análisis cruzado clima-contaminación.
 
 Está respaldado por una *arquitectura de datos end-to-end* con automatización de ingesta y almacenamiento: extractores resilientes anti-rate-limit, lago Parquet particionado como fuente de verdad, validación y agregación con DuckDB, carga idempotente a **PostGIS**, orquestación con **Apache Airflow** y despliegue diario totalmente automático a GitHub Pages vía **GitHub Actions** — con **costo operativo cero**.
 

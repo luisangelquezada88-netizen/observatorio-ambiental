@@ -3,7 +3,7 @@ project:
   output-dir: _site
 
 website:
-  title: "Observatorio Ambiental"
+  title: "EcoPulso"
   description: "Tablero ambiental y biofísico — datos abiertos, foco LatAm"
   navbar:
     background: primary
@@ -24,7 +24,7 @@ website:
       - href: acerca.qmd
         text: Acerca de
   page-footer:
-    left: "Observatorio Ambiental — versión beta. Datos abiertos sin validación oficial."
+    left: "EcoPulso — versión beta. Datos abiertos sin validación oficial."
     right: "Código abierto en GitHub"
 
 format:

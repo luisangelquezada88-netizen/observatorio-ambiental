@@ -4,9 +4,13 @@ lang: es
 ---
 
 <div class="hero hero-acerca">
-<h1>Observatorio Ambiental</h1>
-<p>Arquitectura abierta de datos ambientales y biofísicos · versión beta</p>
+<h1>EcoPulso</h1>
+<p>El pulso diario del ambiente latinoamericano · versión beta</p>
 </div>
+
+## Nuestra historia
+
+En EcoPulso, vemos a la Tierra como un ser vivo — y todo ser vivo tiene un pulso que se puede medir: el aire que respira cada ciudad al amanecer, la lluvia que recorre sus calles, los ríos que la sostienen. Este observatorio toma ese pulso a diario en 150 puntos del planeta, con Latinoamérica al centro, y lo publica abierto para que cualquiera pueda escucharlo: vecinos, periodistas, investigadores y quienes toman decisiones. Porque lo que se mide, se entiende; y lo que se entiende, se cuida.
 
 ::: {.callout-warning}
 ## Versión beta
@@ -42,6 +46,4 @@ Si replicas el observatorio para tu ciudad o país, cuéntanos: la red de 150 pu
 <div class="kpi kpi-verde"><div class="kpi-valor">15</div><div class="kpi-etiqueta">Vida terrestre — deforestación (próxima página)</div></div>
 </div>
 
-## Sobre el proyecto
-
-Proyecto personal de ingeniería de datos con desarrollo asistido por agentes de código. Metodología, decisiones y anomalías de datos se documentan públicamente en `docs/decisiones.md` del repositorio. Página [Datos](datos.qmd) para la ficha técnica completa.
+Página [Datos](datos.qmd) para la ficha técnica completa.

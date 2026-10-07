@@ -1,0 +1,14 @@
+# Normaliza fin de línea a LF (los runners Linux/Airflow lo exigen).
+* text=auto
+*.py text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+*.qmd text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+Makefile text eol=lf
+*.sh text eol=lf
+*.parquet binary
+*.png binary
+*.jpg binary

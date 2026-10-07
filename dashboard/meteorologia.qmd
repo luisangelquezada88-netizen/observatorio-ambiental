@@ -1,22 +1,116 @@
 ---
-title: "Meteorología"
+title: "Clima · Meteorología"
 lang: es
 ---
 
 ```{python}
+#| label: datos-base
+#| output: false
 from pathlib import Path
 import pandas as pd
-import plotly.express as px
 
 files = sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/indicador_diario.parquet"))
-df = pd.concat([pd.read_parquet(f) for f in files]) if files else pd.DataFrame()
-if not df.empty:
-    fig1 = px.scatter(df, x="temp_media_c", y="precipitacion_mm", color="region",
-                      hover_name="ciudad", title="Temperatura vs precipitación por punto")
-    fig1.show()
-    fig2 = px.bar(df.sort_values("precipitacion_mm", ascending=False).head(20),
-                  x="precipitacion_mm", y="ciudad", title="Top 20 precipitación (mm/día)")
-    fig2.show()
-else:
-    print("Sin datos de meteorología todavía.")
+df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True) if files else pd.DataFrame()
+ult = df["fecha"].max() if not df.empty else "s/d"
+base = df[df["fecha"] == ult].copy() if not df.empty else df
+
+def f1(x, dec=1):
+    return "s/d" if x is None or (isinstance(x, float) and pd.isna(x)) else f"{x:.{dec}f}"
+
+def entero(x):
+    return "s/d" if x is None or (isinstance(x, float) and pd.isna(x)) else f"{x:,.0f}"
+```
+
+```{python}
+#| label: hero
+#| output: asis
+print(f"""<div class="hero hero-clima">
+<h1>Meteorología</h1>
+<p>Temperatura · precipitación · viento (ERA5/forecast) · {ult} · {len(base)} puntos</p>
+</div>""")
+```
+
+```{python}
+#| label: kpis
+#| output: asis
+tmed = base["temp_media_c"].median()
+prec = base["precipitacion_mm"].sum()
+pl = base.dropna(subset=["precipitacion_mm"])
+plmax = pl.loc[pl["precipitacion_mm"].idxmax()] if not pl.empty else None
+vi = base.dropna(subset=["viento_max_kmh"])
+vimax = vi.loc[vi["viento_max_kmh"].idxmax()] if not vi.empty else None
+
+def card(valor, unidad, etiqueta):
+    return (f'<div class="kpi kpi-clima"><div class="kpi-valor">{valor}'
+            f'<span class="kpi-unidad">{unidad}</span></div>'
+            f'<div class="kpi-etiqueta">{etiqueta}</div></div>')
+
+cards = [
+    card(f1(tmed), "°C", "Temp. media · global"),
+    card(entero(prec), "mm", "Precipitación total · red"),
+    card(f1(plmax["precipitacion_mm"]) if plmax is not None else "s/d", "mm",
+         f'Mayor lluvia · {plmax["ciudad"]}' if plmax is not None else "Mayor lluvia"),
+    card(f1(vimax["viento_max_kmh"], 0) if vimax is not None else "s/d", "km/h",
+         f'Viento máx · {vimax["ciudad"]}' if vimax is not None else "Viento máx"),
+]
+print('<div class="kpi-row">' + "".join(cards) + "</div>")
+```
+
+## Visor climático
+
+Color por temperatura media, tamaño por lluvia del día.
+
+```{python}
+#| label: visor-clima
+#| fig-cap: "Temperatura media (color) y precipitación (tamaño)"
+import folium
+from folium.plugins import MarkerCluster, Fullscreen
+import branca.colormap as cm
+
+ESRI_SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+col_temp = cm.LinearColormap(["#2166ac", "#fee08b", "#b2182b"], vmin=0, vmax=35, caption="Temp. media °C")
+
+m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True)
+folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(m)
+folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(m)
+mc = MarkerCluster(name="Clima").add_to(m)
+for _, p in base.dropna(subset=["temp_media_c"]).iterrows():
+    ll = 0 if pd.isna(p["precipitacion_mm"]) else float(p["precipitacion_mm"])
+    folium.CircleMarker(
+        [p["lat"], p["lon"]], radius=4 + min(ll, 60) / 8,
+        color=col_temp(float(p["temp_media_c"])), fill=True, fill_opacity=0.85,
+        tooltip=f"{p['ciudad']}: {p['temp_media_c']:.1f} °C · {ll:.1f} mm",
+        popup=folium.Popup(
+            f"<b>{p['ciudad']}</b> ({p['pais']})<table>"
+            f"<tr><td>T. máx</td><td><b>{f1(p['temp_max_c'])} °C</b></td></tr>"
+            f"<tr><td>T. mín</td><td><b>{f1(p['temp_min_c'])} °C</b></td></tr>"
+            f"<tr><td>Lluvia</td><td><b>{ll:.1f} mm</b></td></tr>"
+            f"<tr><td>Viento máx</td><td><b>{f1(p['viento_max_kmh'])} km/h</b></td></tr></table>",
+            max_width=280),
+    ).add_to(mc)
+col_temp.add_to(m)
+Fullscreen().add_to(m)
+folium.LayerControl(collapsed=False).add_to(m)
+m
+```
+
+## Análisis
+
+```{python}
+#| label: graficos-clima
+import plotly.express as px
+
+top = base.dropna(subset=["precipitacion_mm"]).sort_values("precipitacion_mm", ascending=False).head(20)
+fig1 = px.bar(top, x="precipitacion_mm", y="ciudad", color="region",
+              title="Top 20 precipitación (mm/día)",
+              labels={"precipitacion_mm": "mm", "ciudad": "Ciudad"})
+fig1.update_layout(height=560)
+fig1.show()
+
+fig2 = px.scatter(base.dropna(subset=["temp_media_c", "precipitacion_mm"]),
+                  x="temp_media_c", y="precipitacion_mm", color="region", hover_name="ciudad",
+                  title="Temperatura vs precipitación por punto",
+                  labels={"temp_media_c": "Temp. media °C", "precipitacion_mm": "Precipitación mm"})
+fig2.update_layout(height=420)
+fig2.show()
 ```

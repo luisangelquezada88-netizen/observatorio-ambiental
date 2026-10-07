@@ -53,3 +53,11 @@
   aunque estemos bajo 10k calls/dia. En local no ocurre.
 - Mitigacion en `src/extract/_http.py`: respeta `Retry-After`, 6 intentos con
   backoff 5s->180s + jitter. Bloques de 20 puntos + pausa de 3s entre bloques.
+
+## D-10 — Dashboard v2: híbrido tablero + pilares (2026-10-07)
+- Se eliminan las páginas vacías (deforestación, CO₂) del render; git las conserva.
+- Estructura: Tablero cruzado (KPIs + visor multicapa + scatter cruzados) y páginas
+  temáticas (Aire/Clima/Agua) con visor propio. Híbrido > todo-junto (unidades
+  incompatibles) y > solo-separado (sin análisis cruzado).
+- Tiles: OSM + Esri (calles/satélite); CartoDB exige API key y queda vetado.
+- KPIs como HTML precalculado (cero JS, apto para sitio estático).

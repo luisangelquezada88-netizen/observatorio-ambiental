@@ -1,0 +1,47 @@
+---
+title: "Acerca de"
+lang: es
+---
+
+<div class="hero hero-acerca">
+<h1>Observatorio Ambiental</h1>
+<p>Arquitectura abierta de datos ambientales y biofísicos · versión beta</p>
+</div>
+
+::: {.callout-warning}
+## Versión beta
+Los datos son automáticos y provienen de modelos globales abiertos (CAMS, ERA5, GloFAS), **sin validación oficial** de estaciones nacionales. Úsalos para exploración y análisis regional, no como sustituto de mediciones oficiales.
+:::
+
+## Qué es
+
+Plataforma end-to-end que **extrae, transforma, almacena, valida y publica** datos ambientales con foco en Latinoamérica: calidad del aire, clima y agua hoy; deforestación y CO₂ en camino. Orquestada con Apache Airflow, servida en PostGIS y publicada como sitio estático gratuito.
+
+## Código abierto
+
+Todo —extractores, transformaciones, esquema SQL, DAGs y este sitio— es abierto y reutilizable:
+
+**[github.com/luisangelquezada88-netizen/observatorio-ambiental](https://github.com/luisangelquezada88-netizen/observatorio-ambiental)**
+
+Si replicas el observatorio para tu ciudad o país, cuéntanos: la red de 150 puntos vive en un solo archivo (`src/config/puntos_monitoreo.py`).
+
+## Objetivos
+
+- Democratizar el acceso a datos ambientales con fuentes 100% abiertas y gratuitas.
+- Dar contexto regional LatAm sin perder la comparación global.
+- Mantener una arquitectura barata y reproducible: cero costo operativo, todo reconstruible desde el lake Parquet.
+- Crecer por etapas: historia climática, alertas tempranas y satélite (ver plan del proyecto).
+
+## Objetivos de Desarrollo Sostenible
+
+<div class="kpi-row">
+<div class="kpi kpi-verde"><div class="kpi-valor">3</div><div class="kpi-etiqueta">Salud y bienestar — aire limpio (PM2.5, AQI)</div></div>
+<div class="kpi kpi-agua"><div class="kpi-valor">6</div><div class="kpi-etiqueta">Agua limpia — caudales y cuencas (GloFAS)</div></div>
+<div class="kpi kpi-aire"><div class="kpi-valor">11</div><div class="kpi-etiqueta">Ciudades sostenibles — 150 ciudades monitoreadas</div></div>
+<div class="kpi kpi-clima"><div class="kpi-valor">13</div><div class="kpi-etiqueta">Acción por el clima — ERA5, historia en camino</div></div>
+<div class="kpi kpi-verde"><div class="kpi-valor">15</div><div class="kpi-etiqueta">Vida terrestre — deforestación (próxima página)</div></div>
+</div>
+
+## Sobre el proyecto
+
+Proyecto personal de ingeniería de datos con desarrollo asistido por agentes de código. Metodología, decisiones y anomalías de datos se documentan públicamente en `docs/decisiones.md` del repositorio. Página [Datos](datos.qmd) para la ficha técnica completa.

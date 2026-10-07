@@ -4,28 +4,35 @@ project:
 
 website:
   title: "Observatorio Ambiental"
-  description: "Plataforma de datos ambientales y biofísicos — 5 pilares, datos abiertos"
+  description: "Tablero ambiental y biofísico — datos abiertos, foco LatAm"
   navbar:
     background: primary
     search: false
     left:
       - href: index.qmd
-        text: Resumen
-      - href: calidad_aire.qmd
-        text: Calidad del aire
-      - href: hidrologia.qmd
-        text: Hidrología
-      - href: meteorologia.qmd
-        text: Meteorología
-      - href: deforestacion.qmd
-        text: Deforestación
-      - href: emisiones.qmd
-        text: Emisiones
+        text: Tablero
+      - text: Ambiente
+        menu:
+          - href: calidad_aire.qmd
+            text: "Aire · Calidad del aire"
+          - href: meteorologia.qmd
+            text: "Clima · Meteorología"
+          - href: hidrologia.qmd
+            text: "Agua · Hidrología"
+      - href: datos.qmd
+        text: Datos
+      - href: acerca.qmd
+        text: Acerca de
+  page-footer:
+    left: "Observatorio Ambiental — versión beta. Datos abiertos sin validación oficial."
+    right: "Código abierto en GitHub"
 
 format:
   html:
     lang: es
-    theme: cosmo
+    theme:
+      - cosmo
+      - custom.scss
     css: styles.css
     toc: true
     embed-resources: true

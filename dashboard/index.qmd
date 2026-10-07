@@ -1,50 +1,162 @@
 ---
-title: "Observatorio Ambiental — Resumen LatAm"
+title: "Tablero regional"
 lang: es
 ---
 
-## Panorama de ayer
-
-Datos abiertos globales con foco en Latinoamérica: calidad del aire (CAMS),
-meteorología (ERA5/forecast), hidrología (GloFAS), deforestación (GFW) y CO₂ (OWID).
-
 ```{python}
+#| label: datos-base
+#| output: false
 from pathlib import Path
+import numpy as np
 import pandas as pd
 
-diario = None
-for f in sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/indicador_diario.parquet")):
-    diario = pd.read_parquet(f)
-print(f"filas: {len(diario) if diario is not None else 0}")
-if diario is not None and not diario.empty:
-    fecha = diario["fecha"].max()
-    sub = diario[diario["fecha"] == fecha]
-    print(f"fecha: {fecha} | puntos: {sub['punto_id'].nunique()} | "
-          f"PM2.5 mediana: {sub['pm25_media'].median():.1f} µg/m³ | "
-          f"T media: {sub['temp_media_c'].median():.1f} °C | "
-          f"precip total: {sub['precipitacion_mm'].sum():.1f} mm")
-    display(sub[["ciudad","pais","temp_media_c","precipitacion_mm","pm25_media","categoria_pm25_oms","caudal_m3s"]].head(15))
-else:
-    print("Sin datos aún: ejecuta make extract transform (ver README).")
+files = sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/indicador_diario.parquet"))
+df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True) if files else pd.DataFrame()
+ult = df["fecha"].max() if not df.empty else "s/d"
+base = df[df["fecha"] == ult].copy() if not df.empty else df
+latam = base[base["region"] == "LatAm"].copy() if not base.empty else base
+
+def f1(x, dec=1):
+    return "s/d" if x is None or (isinstance(x, float) and pd.isna(x)) else f"{x:.{dec}f}"
+
+def entero(x):
+    return "s/d" if x is None or (isinstance(x, float) and pd.isna(x)) else f"{x:,.0f}"
 ```
 
 ```{python}
-#| label: mapa-puntos
-#| fig-cap: "Red de monitoreo: ~150 puntos (LatAm + mundo)"
-from src.config.puntos_monitoreo import PUNTOS
-import folium
+#| label: hero
+#| output: asis
+n = len(base)
+print(f"""<div class="hero hero-tablero">
+<h1>Tablero regional</h1>
+<p>Datos del {ult} · {n} puntos · 3 pilares activos (aire · clima · agua)</p>
+</div>""")
+```
 
-m = folium.Map(location=[-15, -60], zoom_start=3, tiles="CartoDB positron")
-for p in PUNTOS:
-    color = "blue" if p["region"] == "LatAm" else "gray"
-    folium.CircleMarker([p["lat"], p["lon"]], radius=3, color=color,
-                        popup=f"{p['ciudad']} ({p['pais']})").add_to(m)
-m.save("mapa_tmp.html")
-print(f"{len(PUNTOS)} puntos renderizados (ver mapa interactivo abajo en HTML completo).")
+```{python}
+#| label: kpis
+#| output: asis
+pm = latam["pm25_media"].dropna()
+buena = latam[latam["categoria_pm25_oms"] == "Buena"].shape[0]
+tmed = latam["temp_media_c"].median()
+prec = latam["precipitacion_mm"].sum()
+q = base.dropna(subset=["caudal_m3s"])
+qmax = q.loc[q["caudal_m3s"].idxmax()] if not q.empty else None
+am = base.dropna(subset=["us_aqi_max"])
+amax = am.loc[am["us_aqi_max"].idxmax()] if not am.empty else None
+
+def card(valor, unidad, etiqueta, clase):
+    return (f'<div class="kpi {clase}"><div class="kpi-valor">{valor}'
+            f'<span class="kpi-unidad">{unidad}</span></div>'
+            f'<div class="kpi-etiqueta">{etiqueta}</div></div>')
+
+cards = [
+    card(f1(pm.median()), "µg/m³", "PM2.5 mediana · LatAm", "kpi-aire"),
+    card(f"{100 * buena / max(len(pm), 1):.0f}", "%", "Puntos LatAm con aire “Buena”", "kpi-aire"),
+    card(f1(tmed), "°C", "Temp. media · LatAm", "kpi-clima"),
+    card(entero(prec), "mm", "Precipitación total · LatAm", "kpi-clima"),
+    card(entero(qmax["caudal_m3s"]) if qmax is not None else None, "", f'Caudal máx · {qmax["ciudad"]}' if qmax is not None else "Caudal máx", "kpi-agua"),
+    card(entero(amax["us_aqi_max"]) if amax is not None else None, "AQI", f'Peor AQI · {amax["ciudad"]}' if amax is not None else "Peor AQI", "kpi-gris"),
+]
+print('<div class="kpi-row">' + "".join(cards) + "</div>")
+```
+
+## Visor maestro
+
+Conmuta las capas **Aire · Clima · Agua** (arriba a la derecha) y cambia el fondo entre calles y satélite.
+
+```{python}
+#| label: visor-maestro
+#| fig-cap: "Visor maestro multicapa: PM2.5 por categoría OMS, temperatura y caudal (log)"
+import math
+import folium
+from folium.plugins import MarkerCluster, Fullscreen
+import branca.colormap as cm
+
+ESRI_CALLES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+ESRI_SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+OMS = {"Buena": "#2d6a4f", "Moderada": "#ee9b00", "Dañina (sensible)": "#ca6702",
+       "Dañina": "#bb3e03", "Muy dañina": "#9d0208", "Peligrosa": "#6a040f"}
+
+def popup(p, filas):
+    rows = "".join(f"<tr><td>{k}</td><td><b>{v}</b></td></tr>" for k, v in filas)
+    return folium.Popup(f"<b>{p['ciudad']}</b> ({p['pais']})<table>{rows}</table>", max_width=280)
+
+m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True)
+folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(m)
+folium.TileLayer(tiles=ESRI_CALLES, attr="Esri", name="Esri calles").add_to(m)
+folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(m)
+
+g_aire = folium.FeatureGroup(name="Aire · PM2.5")
+mc_a = MarkerCluster().add_to(g_aire)
+for _, p in base.dropna(subset=["pm25_media"]).iterrows():
+    folium.CircleMarker(
+        [p["lat"], p["lon"]], radius=4 + min(float(p["pm25_media"]), 150) / 18,
+        color=OMS.get(p["categoria_pm25_oms"], "#6c757d"), fill=True, fill_opacity=0.8,
+        tooltip=f"{p['ciudad']}: PM2.5 {p['pm25_media']:.1f} µg/m³",
+        popup=popup(p, [("PM2.5", f"{p['pm25_media']:.1f} µg/m³"),
+                        ("Categoría", p["categoria_pm25_oms"]), ("AQI US máx", f1(p["us_aqi_max"], 0))]),
+    ).add_to(mc_a)
+g_aire.add_to(m)
+
+col_temp = cm.LinearColormap(["#2166ac", "#fee08b", "#b2182b"], vmin=0, vmax=35)
+g_clima = folium.FeatureGroup(name="Clima · Temp/lluvia")
+mc_c = MarkerCluster().add_to(g_clima)
+for _, p in base.dropna(subset=["temp_media_c"]).iterrows():
+    ll = 0 if pd.isna(p["precipitacion_mm"]) else float(p["precipitacion_mm"])
+    folium.CircleMarker(
+        [p["lat"], p["lon"]], radius=4 + min(ll, 60) / 8,
+        color=col_temp(float(p["temp_media_c"])), fill=True, fill_opacity=0.8,
+        tooltip=f"{p['ciudad']}: {p['temp_media_c']:.1f} °C · {ll:.1f} mm",
+        popup=popup(p, [("Temp. media", f"{p['temp_media_c']:.1f} °C"),
+                        ("Precipitación", f"{ll:.1f} mm"), ("Viento máx", f"{f1(p['viento_max_kmh'])} km/h")]),
+    ).add_to(mc_c)
+g_clima.add_to(m)
+
+g_agua = folium.FeatureGroup(name="Agua · Caudal (log)")
+mc_h = MarkerCluster().add_to(g_agua)
+for _, p in base.dropna(subset=["caudal_m3s"]).iterrows():
+    qq = float(p["caudal_m3s"])
+    folium.CircleMarker(
+        [p["lat"], p["lon"]], radius=3 + 4 * math.log10(1 + qq),
+        color="#01497c", fill=True, fill_opacity=0.75,
+        tooltip=f"{p['ciudad']}: {qq:,.0f} m³/s",
+        popup=popup(p, [("Caudal", f"{qq:,.0f} m³/s"), ("Tipo", "Cuenca" if p.get("es_cuenca") else "Ciudad")]),
+    ).add_to(mc_h)
+g_agua.add_to(m)
+
+col_temp.caption = "Temp. media °C"
+col_temp.add_to(m)
+Fullscreen().add_to(m)
+folium.LayerControl(collapsed=False).add_to(m)
 m
 ```
 
-::: {.callout-note}
-El mapa Folium completo y las 5 páginas de pilares se generan con `quarto render dashboard`.
-GitHub Pages publica el resultado cada día vía Actions.
-:::
+## Análisis cruzado
+
+```{python}
+#| label: cruzados
+import plotly.express as px
+
+cru = base.dropna(subset=["temp_media_c", "pm25_media"])
+fig1 = px.scatter(cru, x="temp_media_c", y="pm25_media", color="region", hover_name="ciudad",
+                  title="¿Calor y contaminación van juntos? Temp. media vs PM2.5",
+                  labels={"temp_media_c": "Temp. media °C", "pm25_media": "PM2.5 µg/m³"})
+fig1.update_layout(height=420)
+fig1.show()
+
+cru2 = base.dropna(subset=["precipitacion_mm", "us_aqi_max"])
+fig2 = px.scatter(cru2, x="precipitacion_mm", y="us_aqi_max", color="region", hover_name="ciudad",
+                  title="¿La lluvia limpia el aire? Precipitación vs AQI máximo",
+                  labels={"precipitacion_mm": "Precipitación mm", "us_aqi_max": "AQI US máx"})
+fig2.update_layout(height=420)
+fig2.show()
+```
+
+## Peor aire en LatAm hoy
+
+```{python}
+#| label: top-aire
+top = latam.dropna(subset=["pm25_media"]).sort_values("pm25_media", ascending=False).head(10)
+display(top[["ciudad", "pais", "pm25_media", "categoria_pm25_oms", "us_aqi_max"]])
+```

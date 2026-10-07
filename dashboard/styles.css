@@ -1,5 +1,67 @@
-body { font-family: "Segoe UI", system-ui, sans-serif; }
-.navbar { font-weight: 600; }
-.card-metrica { border-left: 4px solid #2c7fb8; padding: 0.5rem 1rem; margin-bottom: 1rem;
-  background: #f7fbff; border-radius: 6px; }
-table { font-size: 0.9rem; }
+/* Identidad Observatorio Ambiental: héroes, tarjetas KPI, tablas densas. */
+
+.hero {
+  border-radius: 14px;
+  padding: 1.6rem 1.4rem;
+  margin: 0 0 1.2rem;
+  color: #fff;
+}
+.hero h1 {
+  color: #fff;
+  margin: 0 0 0.3rem;
+  font-size: 2rem;
+}
+.hero p {
+  margin: 0;
+  opacity: 0.92;
+}
+.hero-tablero { background: linear-gradient(120deg, #081c15, #1b4332 60%, #2d6a4f); }
+.hero-aire { background: linear-gradient(120deg, #431407, #9a3412 55%, #ee9b00); }
+.hero-clima { background: linear-gradient(120deg, #0c2d48, #1565a2 60%, #219ebc); }
+.hero-agua { background: linear-gradient(120deg, #012a4a, #01497c 55%, #219ebc); }
+.hero-datos { background: linear-gradient(120deg, #212529, #495057); }
+.hero-acerca { background: linear-gradient(120deg, #081c15, #40916c); }
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.7rem;
+  margin: 0.9rem 0 1.2rem;
+}
+.kpi {
+  background: #fff;
+  border: 1px solid #e6e8e6;
+  border-top: 5px solid var(--kpi, #1b4332);
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+.kpi-valor {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.kpi-unidad {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-left: 0.25rem;
+}
+.kpi-etiqueta {
+  font-size: 0.78rem;
+  color: #495057;
+  margin-top: 0.15rem;
+}
+.kpi-aire { --kpi: #ee9b00; }
+.kpi-clima { --kpi: #219ebc; }
+.kpi-agua { --kpi: #01497c; }
+.kpi-verde { --kpi: #2d6a4f; }
+.kpi-gris { --kpi: #6c757d; }
+
+table.table {
+  font-size: 0.85rem;
+}
+
+.map-legend {
+  font-size: 0.78rem;
+}

@@ -1,0 +1,63 @@
+---
+title: "Datos · Fuentes e indicadores"
+lang: es
+---
+
+<div class="hero hero-datos">
+<h1>Datos</h1>
+<p>Fuentes abiertas · indicadores explicados · metodología · limitaciones</p>
+</div>
+
+```{python}
+#| label: cobertura
+#| output: asis
+from pathlib import Path
+from src.config.puntos_monitoreo import resumen
+
+r = resumen()
+fechas = sorted(p.parent.name for p in Path("../lake/serving/indicador_diario").glob("fecha=*/*.parquet"))
+ini, fin = (fechas[0].replace("fecha=", ""), fechas[-1].replace("fecha=", "")) if fechas else ("s/d", "s/d")
+print(f"""<div class="kpi-row">
+<div class="kpi kpi-gris"><div class="kpi-valor">{r['total']}</div><div class="kpi-etiqueta">Puntos de monitoreo</div></div>
+<div class="kpi kpi-verde"><div class="kpi-valor">{r['latam']}</div><div class="kpi-etiqueta">En LatAm y Caribe</div></div>
+<div class="kpi kpi-gris"><div class="kpi-valor">{r['mundo']}</div><div class="kpi-etiqueta">Resto del mundo</div></div>
+<div class="kpi kpi-verde"><div class="kpi-valor">{fin}</div><div class="kpi-etiqueta">Última fecha servida</div></div>
+</div>""")
+```
+
+## Fuentes
+
+| Pilar | Fuente | Variables | Cadencia | Acceso |
+|---|---|---|---|---|
+| Calidad del aire | Open-Meteo Air Quality (CAMS/Copernicus) | PM2.5, PM10, O₃, NO₂, AQI | Diaria | Sin key |
+| Clima | Open-Meteo Forecast + ERA5 | Temp. máx/mín/media, precipitación, viento, radiación | Diaria | Sin key |
+| Agua | Open-Meteo Flood (GloFAS) | Caudal diario | Diaria | Sin key |
+| Deforestación | Global Forest Watch | Pérdida anual de cobertura (ha) | Anual | Requiere key (página en pausa) |
+| CO₂ | Our World in Data | Mt CO₂ total y per cápita | Anual | Sin key (página en pausa) |
+
+El tablero se actualiza solo cada día (06:15 UTC) con los datos de ayer vía GitHub Actions.
+
+## Indicadores
+
+**Aire (categorías OMS sobre PM2.5 media diaria):** Buena ≤ 12 · Moderada ≤ 35.4 · Dañina (sensible) ≤ 55.4 · Dañina ≤ 150.4 · Muy dañina ≤ 250.4 · Peligrosa > 250.4 µg/m³. Guía OMS 24h: ≤ 15 µg/m³.
+
+**Clima:** temperaturas en °C, precipitación en mm/día, viento en km/h. Agregado país: temperatura media, precipitación total.
+
+**Agua:** caudal en m³/s. El flag `es_cuenca` distingue cauces reales de celdas urbanas de malla gruesa. Agregado país: caudal medio.
+
+## Metodología
+
+1. **Extracción:** ~150 coordenadas en bloques multicoordenada con pacing anti-429 (ver D-09).
+2. **Validación:** rangos físicos (p. ej. −60–55 °C, PM2.5 0–1000); fuera de rango → NULL con log.
+3. **Agregación:** promedio/max diario por punto y por país (DuckDB, con fallback pandas).
+4. **Serving:** Parquet particionado `fecha=YYYY-MM-DD` como fuente de verdad; PostGIS como capa de consulta (idempotente: re-correr una fecha sobrescribe, no duplica).
+
+## Limitaciones conocidas
+
+- **GloFAS es malla gruesa (~10 km):** orientativo en ciudades; fiable en grandes cuencas (D-02).
+- **Deforestación y CO₂ en pausa:** GFW exige API key y OWID publica con ~1 año de retraso (D-03, D-04).
+- **β:** datos automáticos sin validación oficial de estaciones nacionales.
+
+## Reutilizar los datos
+
+Todo el pipeline es código abierto: [repositorio en GitHub](https://github.com/luisangelquezada88-netizen/observatorio-ambiental). Ver [Acerca de](acerca.qmd).

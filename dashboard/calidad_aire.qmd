@@ -1,24 +1,112 @@
 ---
-title: "Calidad del aire"
+title: "Aire · Calidad del aire"
 lang: es
 ---
 
 ```{python}
+#| label: datos-base
+#| output: false
 from pathlib import Path
 import pandas as pd
-import plotly.express as px
 
 files = sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/indicador_diario.parquet"))
-df = pd.concat([pd.read_parquet(f) for f in files]) if files else pd.DataFrame()
-if not df.empty:
-    top = df.dropna(subset=["pm25_media"]).sort_values("pm25_media", ascending=False).head(20)
-    fig = px.bar(top, x="pm25_media", y="ciudad", color="categoria_pm25_oms",
-                 title="Top 20 PM2.5 (µg/m³) — última fecha disponible",
-                 labels={"pm25_media":"PM2.5 media","ciudad":"Ciudad"})
-    fig.show()
-    display(df.groupby("categoria_pm25_oms")["punto_id"].count().rename("n_puntos"))
-else:
-    print("Sin datos de calidad del aire todavía.")
+df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True) if files else pd.DataFrame()
+ult = df["fecha"].max() if not df.empty else "s/d"
+base = df[df["fecha"] == ult].copy() if not df.empty else df
+
+def f1(x, dec=1):
+    return "s/d" if x is None or (isinstance(x, float) and pd.isna(x)) else f"{x:.{dec}f}"
 ```
 
-> Umbrales OMS (guía 2021): PM2.5 24h ≤ 15 µg/m³. Categorías del pipeline en `src/transform/indicadores.py`.
+```{python}
+#| label: hero
+#| output: asis
+print(f"""<div class="hero hero-aire">
+<h1>Calidad del aire</h1>
+<p>PM2.5 · PM10 · O₃ · NO₂ (CAMS/Copernicus) · {ult} · {len(base)} puntos</p>
+</div>""")
+```
+
+```{python}
+#| label: kpis
+#| output: asis
+pm = base["pm25_media"].dropna()
+lat = base[base["region"] == "LatAm"]["pm25_media"].dropna()
+sobre = base[base["pm25_media"] > 35.4].shape[0]
+pmax = base.loc[base["pm25_media"].idxmax()] if not pm.empty else None
+
+def card(valor, unidad, etiqueta):
+    return (f'<div class="kpi kpi-aire"><div class="kpi-valor">{valor}'
+            f'<span class="kpi-unidad">{unidad}</span></div>'
+            f'<div class="kpi-etiqueta">{etiqueta}</div></div>')
+
+cards = [
+    card(f1(pm.median()), "µg/m³", "PM2.5 mediana · global"),
+    card(f1(lat.median()), "µg/m³", "PM2.5 mediana · LatAm"),
+    card(str(sobre), "puntos", "Sobre 35.4 µg/m³ (límite diario laxo)"),
+    card(f1(pmax["pm25_media"]) if pmax is not None else "s/d", "µg/m³", f'Peor punto · {pmax["ciudad"]}' if pmax is not None else "Peor punto"),
+]
+print('<div class="kpi-row">' + "".join(cards) + "</div>")
+```
+
+## Visor de PM2.5
+
+Color por categoría OMS 2021, tamaño por concentración.
+
+```{python}
+#| label: visor-aire
+#| fig-cap: "PM2.5 por punto (categoría OMS). Referencia: guía 24h ≤ 15 µg/m³"
+import folium
+from folium.plugins import MarkerCluster, Fullscreen
+
+ESRI_SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+OMS = {"Buena": "#2d6a4f", "Moderada": "#ee9b00", "Dañina (sensible)": "#ca6702",
+       "Dañina": "#bb3e03", "Muy dañina": "#9d0208", "Peligrosa": "#6a040f"}
+
+m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True)
+folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(m)
+folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(m)
+mc = MarkerCluster(name="PM2.5").add_to(m)
+for _, p in base.dropna(subset=["pm25_media"]).iterrows():
+    folium.CircleMarker(
+        [p["lat"], p["lon"]], radius=4 + min(float(p["pm25_media"]), 150) / 18,
+        color=OMS.get(p["categoria_pm25_oms"], "#6c757d"), fill=True, fill_opacity=0.85,
+        tooltip=f"{p['ciudad']}: {p['pm25_media']:.1f} µg/m³ ({p['categoria_pm25_oms']})",
+        popup=folium.Popup(
+            f"<b>{p['ciudad']}</b> ({p['pais']})<table>"
+            f"<tr><td>PM2.5</td><td><b>{p['pm25_media']:.1f} µg/m³</b></td></tr>"
+            f"<tr><td>PM10</td><td><b>{f1(p['pm10_media'])} µg/m³</b></td></tr>"
+            f"<tr><td>O₃</td><td><b>{f1(p['o3_media'])} µg/m³</b></td></tr>"
+            f"<tr><td>NO₂</td><td><b>{f1(p['no2_media'])} µg/m³</b></td></tr></table>",
+            max_width=280),
+    ).add_to(mc)
+legend = ("<div style='position:fixed;bottom:20px;left:20px;z-index:9999;background:white;"
+          "padding:8px 10px;border-radius:8px;font-size:12px' class='map-legend'><b>PM2.5</b><br>" +
+          "".join(f"<span style='color:{c}'>●</span> {k}<br>" for k, c in OMS.items()) + "</div>")
+m.get_root().html.add_child(folium.Element(legend))
+Fullscreen().add_to(m)
+folium.LayerControl(collapsed=False).add_to(m)
+m
+```
+
+## Análisis
+
+```{python}
+#| label: graficos-aire
+import plotly.express as px
+
+top = base.dropna(subset=["pm25_media"]).sort_values("pm25_media", ascending=False).head(20)
+fig1 = px.bar(top, x="pm25_media", y="ciudad", color="categoria_pm25_oms",
+              color_discrete_map=OMS, title="Top 20 PM2.5 (µg/m³)",
+              labels={"pm25_media": "PM2.5 media", "ciudad": "Ciudad"})
+fig1.update_layout(height=560)
+fig1.show()
+
+fig2 = px.histogram(base.dropna(subset=["pm25_media"]), x="pm25_media", color="region",
+                    nbins=30, title="Distribución de PM2.5 por región",
+                    labels={"pm25_media": "PM2.5 µg/m³"})
+fig2.update_layout(height=380)
+fig2.show()
+```
+
+> Umbrales OMS (guía 2021): PM2.5 24h ≤ 15 µg/m³. Categorías calculadas en `src/transform/indicadores.py`.

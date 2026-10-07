@@ -1,23 +1,110 @@
 ---
-title: "Hidrología"
+title: "Agua · Hidrología"
 lang: es
 ---
 
 ```{python}
+#| label: datos-base
+#| output: false
 from pathlib import Path
 import pandas as pd
-import plotly.express as px
 
 files = sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/indicador_diario.parquet"))
-df = pd.concat([pd.read_parquet(f) for f in files]) if files else pd.DataFrame()
-if not df.empty:
-    cu = df.dropna(subset=["caudal_m3s"]).sort_values("caudal_m3s", ascending=False).head(20)
-    fig = px.bar(cu, x="caudal_m3s", y="ciudad", title="Top 20 caudal GloFAS (m³/s)",
-                 labels={"caudal_m3s":"Caudal","ciudad":"Punto"})
-    fig.show()
-    display(cu[["ciudad","pais","caudal_m3s","caudal_medio_m3s","caudal_max_m3s"]])
-else:
-    print("Sin datos de hidrología todavía.")
+df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True) if files else pd.DataFrame()
+ult = df["fecha"].max() if not df.empty else "s/d"
+base = df[df["fecha"] == ult].copy() if not df.empty else df
+
+def entero(x):
+    return "s/d" if x is None or (isinstance(x, float) and pd.isna(x)) else f"{x:,.0f}"
 ```
 
-> GloFAS es malla gruesa: útil para comparar cuencas, no para crecidas locales (ver `docs/decisiones.md` D-02).
+```{python}
+#| label: hero
+#| output: asis
+print(f"""<div class="hero hero-agua">
+<h1>Hidrología</h1>
+<p>Caudal diario GloFAS · {ult} · {len(base)} puntos</p>
+</div>""")
+```
+
+```{python}
+#| label: kpis
+#| output: asis
+q = base.dropna(subset=["caudal_m3s"])
+cu = q[q.get("es_cuenca", False)] if "es_cuenca" in q.columns else q.iloc[0:0]
+qmax = q.loc[q["caudal_m3s"].idxmax()] if not q.empty else None
+
+def card(valor, unidad, etiqueta):
+    return (f'<div class="kpi kpi-agua"><div class="kpi-valor">{valor}'
+            f'<span class="kpi-unidad">{unidad}</span></div>'
+            f'<div class="kpi-etiqueta">{etiqueta}</div></div>')
+
+cards = [
+    card(entero(qmax["caudal_m3s"]) if qmax is not None else "s/d", "m³/s",
+         f'Mayor caudal · {qmax["ciudad"]}' if qmax is not None else "Mayor caudal"),
+    card(entero(q["caudal_m3s"].median()) if not q.empty else "s/d", "m³/s", "Caudal mediano · red"),
+    card(entero(cu["caudal_m3s"].median()) if not cu.empty else "s/d", "m³/s", "Caudal mediano · cuencas"),
+    card(str(len(q)), "puntos", "Puntos con dato de caudal"),
+]
+print('<div class="kpi-row">' + "".join(cards) + "</div>")
+```
+
+## Visor de caudales
+
+Tamaño en escala logarítmica: el Amazonas (≈70 000 m³/s) aplastaría todo en escala lineal. Los puntos marcados como cuenca son cauces reales; el resto es celda de malla gruesa (ver nota).
+
+```{python}
+#| label: visor-agua
+#| fig-cap: "Caudal GloFAS por punto (tamaño logarítmico)"
+import math
+import folium
+from folium.plugins import MarkerCluster, Fullscreen
+
+ESRI_SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+
+m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True)
+folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(m)
+folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(m)
+mc = MarkerCluster(name="Caudal").add_to(m)
+for _, p in base.dropna(subset=["caudal_m3s"]).iterrows():
+    qq = float(p["caudal_m3s"])
+    es_c = bool(p.get("es_cuenca", False)) if "es_cuenca" in base.columns else False
+    folium.CircleMarker(
+        [p["lat"], p["lon"]], radius=3 + 4 * math.log10(1 + qq),
+        color="#01497c" if es_c else "#219ebc",
+        fill=True, fill_opacity=0.8, weight=3 if es_c else 2,
+        tooltip=f"{p['ciudad']}: {qq:,.0f} m³/s",
+        popup=folium.Popup(
+            f"<b>{p['ciudad']}</b> ({p['pais']})<table>"
+            f"<tr><td>Caudal</td><td><b>{qq:,.0f} m³/s</b></td></tr>"
+            f"<tr><td>Tipo</td><td><b>{'Cuenca' if es_c else 'Ciudad (malla)'}</b></td></tr></table>",
+            max_width=280),
+    ).add_to(mc)
+legend = ("<div style='position:fixed;bottom:20px;left:20px;z-index:9999;background:white;"
+          "padding:8px 10px;border-radius:8px;font-size:12px' class='map-legend'>"
+          "<span style='color:#01497c'>●</span> Cuenca<br>"
+          "<span style='color:#219ebc'>●</span> Ciudad (malla gruesa)</div>")
+m.get_root().html.add_child(folium.Element(legend))
+Fullscreen().add_to(m)
+folium.LayerControl(collapsed=False).add_to(m)
+m
+```
+
+## Análisis
+
+```{python}
+#| label: graficos-agua
+import plotly.express as px
+
+top = base.dropna(subset=["caudal_m3s"]).sort_values("caudal_m3s", ascending=False).head(20)
+fig = px.bar(top, x="caudal_m3s", y="ciudad", color="region", log_x=True,
+             title="Top 20 caudal GloFAS (m³/s, escala log)",
+             labels={"caudal_m3s": "Caudal m³/s", "ciudad": "Punto"})
+fig.update_layout(height=560)
+fig.show()
+display(top[["ciudad", "pais", "caudal_m3s", "caudal_max_m3s"]])
+```
+
+::: {.callout-note}
+GloFAS es malla gruesa (~10 km): útil para comparar cuencas, no para crecidas locales (ver [Datos](datos.qmd)).
+:::

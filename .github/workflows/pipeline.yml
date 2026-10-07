@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["src/**", "dashboard/**", "tests/**"]
+    paths: ["src/**", "dashboard/**", "tests/**", "requirements.txt", "dags/**", "sql/**"]
 
 permissions:
   contents: read

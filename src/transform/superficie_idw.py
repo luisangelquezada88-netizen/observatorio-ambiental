@@ -4,7 +4,8 @@ Lee:  lake/serving/indicador_diario/fecha=FECHA/*.parquet
 Escribe (sobrescribe = idempotente):
   lake/serving/superficies/fecha=FECHA/pm25.png   (raster bandas AQI)
   lake/serving/superficies/fecha=FECHA/meta.json  (rmse_loo, n, params)
-Método: IDW p=2 sobre malla 0.5°, corte a 1300 km (más allá = NaN).
+Método: IDW p=2 sobre malla 0.25°, corte a 800 km (más allá = NaN) y
+fundido alfa por distancia (lejos de estaciones = transparente).
 Límites honestos: ignora barreras (Andes) y no enmascara costa.
 """
 from __future__ import annotations
@@ -19,9 +20,9 @@ import pandas as pd
 
 LAT0, LAT1 = -56.0, 33.0
 LON0, LON1 = -120.0, -30.0
-RES = 0.5
+RES = 0.25
 P = 2.0
-CORTE_KM = 1300.0
+CORTE_KM = 800.0
 # Cortes = bandas AQI del dashboard (coherencia de color punto↔raster).
 NIVELES = [0, 12, 35.4, 55.4, 150.4, 250.4, 600]
 COLORES = ["#2d6a4f", "#ee9b00", "#ca6702", "#bb3e03", "#9d0208", "#6a040f"]
@@ -38,8 +39,8 @@ def _haversine_km(a_lat, a_lon, b_lat, b_lon) -> np.ndarray:
 
 
 def idw_grid(df: pd.DataFrame, res: float = RES, p: float = P,
-             corte_km: float = CORTE_KM) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Devuelve (lats, lons, malla enmascarada) interpolada por IDW."""
+             corte_km: float = CORTE_KM) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Devuelve (lats, lons, malla enmascarada, dmin_km a la estación más cercana)."""
     pts = df.dropna(subset=["pm25_media", "lat", "lon"]).copy()
     slat, slon = pts["lat"].to_numpy(), pts["lon"].to_numpy()
     sval = pts["pm25_media"].to_numpy(dtype=float)
@@ -55,7 +56,7 @@ def idw_grid(df: pd.DataFrame, res: float = RES, p: float = P,
     den = w.sum(axis=1)
     malla = np.where(exactas, sval[d.argmin(axis=1)], num / np.maximum(den, 1e-12))
     malla = np.where(dmin > corte_km, np.nan, malla).reshape(glat.shape)
-    return lats, lons, np.ma.masked_invalid(malla)
+    return lats, lons, np.ma.masked_invalid(malla), dmin.reshape(glat.shape)
 
 
 def loo_rmse(df: pd.DataFrame, p: float = P, corte_km: float = CORTE_KM) -> float:
@@ -91,18 +92,20 @@ def generar(fecha: str, lake: str | Path = "lake") -> dict:
         raise FileNotFoundError(f"sin serving diario para {fecha}")
     df = pd.concat([pd.read_parquet(f) for f in fich], ignore_index=True)
 
-    lats, lons, malla = idw_grid(df)
+    lats, lons, malla, dmin = idw_grid(df)
     rmse = loo_rmse(df)
 
     dest = lake / "serving" / "superficies" / f"fecha={fecha}"
     dest.mkdir(parents=True, exist_ok=True)
     cmap = ListedColormap(COLORES)
     norm = BoundaryNorm(NIVELES, cmap.N)
+    # Fundido por incertidumbre: lejos de estaciones = transparente.
+    alfa = np.where(malla.mask, 0.0, 0.78 * np.clip(1 - dmin / CORTE_KM, 0, 1))
     fig = plt.figure(figsize=((LON1 - LON0) / RES / 100, (LAT1 - LAT0) / RES / 100), dpi=100)
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis("off")
     ax.imshow(malla, extent=[LON0, LON1, LAT0, LAT1], origin="lower",
-              cmap=cmap, norm=norm, alpha=0.72, interpolation="bilinear")
+              cmap=cmap, norm=norm, alpha=alfa, interpolation="bilinear")
     fig.savefig(dest / "pm25.png", transparent=True, bbox_inches="tight", pad_inches=0)
     plt.close(fig)
 

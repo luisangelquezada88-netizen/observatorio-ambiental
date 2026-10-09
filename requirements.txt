@@ -2,7 +2,7 @@
 # Fijar versiones mínimas compatibles con Python 3.11/3.12.
 requests>=2.31
 pandas>=2.2
-pyarrow>=15.0
+pyarrow>=15.0,<25  # <25: la DLL _parquet de v25 la bloquea App Control en Python Store (Windows)
 duckdb>=0.10.0
 psycopg[binary]>=3.1
 sqlalchemy>=2.0

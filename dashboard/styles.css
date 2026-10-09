@@ -65,3 +65,34 @@ table.table {
 .map-legend {
   font-size: 0.78rem;
 }
+
+/* FRONT END: pill de frescura + responsive móvil */
+.pill {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 0.15rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: 1.1rem 1rem;
+  }
+  .hero h1 {
+    font-size: 1.45rem;
+  }
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .kpi-valor {
+    font-size: 1.35rem;
+  }
+  table.table {
+    display: block;
+    overflow-x: auto;
+    font-size: 0.8rem;
+  }
+}

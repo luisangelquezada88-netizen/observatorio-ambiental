@@ -24,14 +24,31 @@ def entero(x):
 ```
 
 ```{python}
+#| label: estilo
+#| output: false
+import plotly.io as pio
+
+pio.templates["eco"] = dict(layout=dict(
+    font=dict(family="Inter, sans-serif", size=12),
+    title=dict(font=dict(family="Fraunces, serif", size=16)),
+    margin=dict(l=50, r=20, t=55, b=40),
+    paper_bgcolor="white", plot_bgcolor="white",
+    xaxis=dict(gridcolor="#edf0f0"), yaxis=dict(gridcolor="#edf0f0")))
+pio.templates.default = "plotly_white+eco"
+```
+
+```{python}
 #| label: hero
 #| output: asis
 n = len(base)
 print(f"""<div class="hero hero-tablero">
 <h1>Tablero regional</h1>
-<p>Datos del {ult} · {n} puntos · 3 pilares activos (aire · clima · agua)</p>
+<div><span class="pill">● En vivo · {ult} · {n} puntos</span></div>
+<p>3 pilares activos (aire · clima · agua) · capas conmutables abajo</p>
 </div>""")
 ```
+
+## 01 · Estado de hoy
 
 ```{python}
 #| label: kpis
@@ -61,16 +78,34 @@ cards = [
 print('<div class="kpi-row">' + "".join(cards) + "</div>")
 ```
 
-## Visor maestro
+## 02 · Temperatura por país
 
-Conmuta las capas **Aire · Clima · Agua** (arriba a la derecha) y cambia el fondo entre calles y satélite.
+```{python}
+#| label: coropleta-temp
+#| fig-cap: "Temperatura media por país"
+import plotly.express as px
+
+pfiles = sorted(Path("../lake/serving/indicador_pais").glob("fecha=*/indicador_pais.parquet"))
+pp = pd.concat([pd.read_parquet(f) for f in pfiles], ignore_index=True) if pfiles else pd.DataFrame()
+ppu = pp[pp["fecha"] == ult].copy() if not pp.empty else pp
+figt = px.choropleth(ppu, locations="iso3", color="temp_media_pais", hover_name="pais",
+                     color_continuous_scale="RdYlBu_r",
+                     title="Temperatura media por país (°C)",
+                     labels={"temp_media_pais": "Temp. media", "iso3": "País"})
+figt.update_layout(height=520, geo=dict(showframe=False, showcoastlines=True))
+figt.show()
+```
+
+## 03 · Visor maestro
+
+Enciende las capas **Aire · Clima · Agua · Calor · IDW** (arriba a la derecha; todas arrancan apagadas) y cambia el fondo entre calles y satélite.
 
 ```{python}
 #| label: visor-maestro
 #| fig-cap: "Visor maestro multicapa: PM2.5 por categoría OMS, temperatura y caudal (log)"
 import math
 import folium
-from folium.plugins import MarkerCluster, Fullscreen, HeatMap
+from folium.plugins import MarkerCluster, Fullscreen, HeatMap, MiniMap
 import branca.colormap as cm
 
 ESRI_CALLES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
@@ -82,21 +117,21 @@ def popup(p, filas):
     rows = "".join(f"<tr><td>{k}</td><td><b>{v}</b></td></tr>" for k, v in filas)
     return folium.Popup(f"<b>{p['ciudad']}</b> ({p['pais']})<table>{rows}</table>", max_width=280)
 
-m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True)
+m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True, preferCanvas=True)
 folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(m)
-folium.TileLayer(tiles=ESRI_CALLES, attr="Esri", name="Esri calles").add_to(m)
-folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(m)
+folium.TileLayer(tiles=ESRI_CALLES, attr="Esri", name="Esri calles", show=False).add_to(m)
+folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite", show=False).add_to(m)
 
 overlay_path = Path(f"../lake/serving/superficies/fecha={ult}/pm25.png")
 if overlay_path.exists():
-    g_idw = folium.FeatureGroup(name="Superficie IDW · PM2.5")
+    g_idw = folium.FeatureGroup(name="Superficie IDW · PM2.5", show=False)
     folium.raster_layers.ImageOverlay(
         str(overlay_path), bounds=[[-56, -120], [33, -30]],
         opacity=0.65, name="IDW PM2.5",
     ).add_to(g_idw)
     g_idw.add_to(m)
 
-g_aire = folium.FeatureGroup(name="Aire · PM2.5")
+g_aire = folium.FeatureGroup(name="Aire · PM2.5", show=False)
 mc_a = MarkerCluster().add_to(g_aire)
 for _, p in base.dropna(subset=["pm25_media"]).iterrows():
     folium.CircleMarker(
@@ -109,7 +144,7 @@ for _, p in base.dropna(subset=["pm25_media"]).iterrows():
 g_aire.add_to(m)
 
 col_temp = cm.LinearColormap(["#2166ac", "#fee08b", "#b2182b"], vmin=0, vmax=35)
-g_clima = folium.FeatureGroup(name="Clima · Temp/lluvia")
+g_clima = folium.FeatureGroup(name="Clima · Temp/lluvia", show=False)
 mc_c = MarkerCluster().add_to(g_clima)
 for _, p in base.dropna(subset=["temp_media_c"]).iterrows():
     ll = 0 if pd.isna(p["precipitacion_mm"]) else float(p["precipitacion_mm"])
@@ -122,7 +157,7 @@ for _, p in base.dropna(subset=["temp_media_c"]).iterrows():
     ).add_to(mc_c)
 g_clima.add_to(m)
 
-g_agua = folium.FeatureGroup(name="Agua · Caudal (log)")
+g_agua = folium.FeatureGroup(name="Agua · Caudal (log)", show=False)
 mc_h = MarkerCluster().add_to(g_agua)
 for _, p in base.dropna(subset=["caudal_m3s"]).iterrows():
     qq = float(p["caudal_m3s"])
@@ -134,7 +169,7 @@ for _, p in base.dropna(subset=["caudal_m3s"]).iterrows():
     ).add_to(mc_h)
 g_agua.add_to(m)
 
-hg = folium.FeatureGroup(name="Calor · PM2.5 (heatmap)")
+hg = folium.FeatureGroup(name="Calor · PM2.5 (heatmap)", show=False)
 HeatMap(
     [[p["lat"], p["lon"], float(p["pm25_media"])] for _, p in base.dropna(subset=["pm25_media"]).iterrows()],
     radius=18, blur=12, max_zoom=6, min_opacity=0.35,
@@ -143,12 +178,17 @@ hg.add_to(m)
 
 col_temp.caption = "Temp. media °C"
 col_temp.add_to(m)
+legend_oms = ("<div style='position:fixed;bottom:20px;left:20px;z-index:9999;background:white;"
+              "padding:8px 10px;border-radius:8px;font-size:12px' class='map-legend'><b>PM2.5 (AQI EE. UU.)</b><br>" +
+              "".join(f"<span style='color:{c}'>●</span> {k}<br>" for k, c in OMS.items()) + "</div>")
+m.get_root().html.add_child(folium.Element(legend_oms))
+MiniMap(toggle_display=True, position="bottomright").add_to(m)
 Fullscreen().add_to(m)
 folium.LayerControl(collapsed=False).add_to(m)
 m
 ```
 
-## Análisis cruzado
+## 05 · Análisis cruzado
 
 ```{python}
 #| label: cruzados
@@ -171,25 +211,7 @@ fig2.update_layout(height=420)
 fig2.show()
 ```
 
-## PM2.5 por país (coropleta)
-
-```{python}
-#| label: coropleta-pais
-#| fig-cap: "PM2.5 media por país — las bandas del visor usan breakpoints AQI (EPA)"
-import plotly.express as px
-
-pfiles = sorted(Path("../lake/serving/indicador_pais").glob("fecha=*/indicador_pais.parquet"))
-pp = pd.concat([pd.read_parquet(f) for f in pfiles], ignore_index=True) if pfiles else pd.DataFrame()
-ppu = pp[pp["fecha"] == ult].copy() if not pp.empty else pp
-figp = px.choropleth(ppu, locations="iso3", color="pm25_media_pais", hover_name="pais",
-                     color_continuous_scale="YlOrRd",
-                     title="PM2.5 media por país (µg/m³)",
-                     labels={"pm25_media_pais": "PM2.5 media", "iso3": "País"})
-figp.update_layout(height=520, geo=dict(showframe=False, showcoastlines=True))
-figp.show()
-```
-
-## Evolución diaria (slider temporal)
+## 04 · Evolución diaria (slider temporal)
 
 Arrastra el control para animar el PM2.5 de los últimos 14 días. El historial se acumula solo en cada run (D-12).
 
@@ -217,7 +239,7 @@ for _, p in hh.sort_values("fecha").iterrows():
         },
     })
 
-mt = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True)
+mt = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True, preferCanvas=True)
 folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(mt)
 folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(mt)
 TimestampedGeoJson(
@@ -225,12 +247,13 @@ TimestampedGeoJson(
     period="P1D", transition_time=600, loop=False, auto_play=False,
     add_last_point=False, date_options="YYYY-MM-DD",
 ).add_to(mt)
+MiniMap(toggle_display=True, position="bottomright").add_to(mt)
 Fullscreen().add_to(mt)
 folium.LayerControl(collapsed=False).add_to(mt)
 mt
 ```
 
-## Método e incertidumbre (IDW)
+## 06 · Método e incertidumbre (IDW)
 
 ```{python}
 #| label: metodo-idw
@@ -242,15 +265,15 @@ if meta_path.exists():
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     print(f"""<div class="kpi-row">
 <div class="kpi kpi-aire"><div class="kpi-valor">{meta['rmse_loo_ugm3']}<span class="kpi-unidad">µg/m³</span></div><div class="kpi-etiqueta">RMSE leave-one-out · {meta['n_puntos']} estaciones</div></div>
-<div class="kpi kpi-gris"><div class="kpi-valor">IDW p={meta['p']}</div><div class="kpi-etiqueta">Malla 0.5° · corte {meta['corte_km']:.0f} km</div></div>
+<div class="kpi kpi-gris"><div class="kpi-valor">IDW p={meta['p']}</div><div class="kpi-etiqueta">Malla {meta['res_grados']}° · corte {meta['corte_km']:.0f} km</div></div>
 </div>""")
 else:
     print("> Superficie aún no generada para esta fecha (corre `superficie_idw`).")
 ```
 
-Interpolación por distancia inversa desde las estaciones (malla 0.5°, corte 1300 km): ignora barreras como los Andes y no enmascara costa — ver límites en D-13. El RMSE se calcula re-interpolando cada estación sin ella misma.
+Interpolación por distancia inversa desde las estaciones, con fundido por distancia (lejos = transparente): ignora barreras como los Andes y no enmascara costa — ver límites en D-13. El RMSE se calcula re-interpolando cada estación sin ella misma.
 
-## Peor aire en LatAm hoy
+## 07 · Peor aire en LatAm hoy
 
 ```{python}
 #| label: top-aire

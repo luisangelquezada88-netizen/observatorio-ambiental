@@ -22,13 +22,30 @@ def entero(x):
 ```
 
 ```{python}
+#| label: estilo
+#| output: false
+import plotly.io as pio
+
+pio.templates["eco"] = dict(layout=dict(
+    font=dict(family="Inter, sans-serif", size=12),
+    title=dict(font=dict(family="Fraunces, serif", size=16)),
+    margin=dict(l=50, r=20, t=55, b=40),
+    paper_bgcolor="white", plot_bgcolor="white",
+    xaxis=dict(gridcolor="#edf0f0"), yaxis=dict(gridcolor="#edf0f0")))
+pio.templates.default = "plotly_white+eco"
+```
+
+```{python}
 #| label: hero
 #| output: asis
 print(f"""<div class="hero hero-clima">
 <h1>Meteorología</h1>
-<p>Temperatura · precipitación · viento (ERA5/forecast) · {ult} · {len(base)} puntos</p>
+<div><span class="pill">● En vivo · {ult} · {len(base)} puntos</span></div>
+<p>Temperatura · precipitación · viento (ERA5/forecast)</p>
 </div>""")
 ```
+
+## 01 · Estado de hoy
 
 ```{python}
 #| label: kpis
@@ -56,7 +73,7 @@ cards = [
 print('<div class="kpi-row">' + "".join(cards) + "</div>")
 ```
 
-## Visor climático
+## 02 · Visor climático
 
 Color por temperatura media, tamaño por lluvia del día.
 
@@ -64,13 +81,13 @@ Color por temperatura media, tamaño por lluvia del día.
 #| label: visor-clima
 #| fig-cap: "Temperatura media (color) y precipitación (tamaño)"
 import folium
-from folium.plugins import MarkerCluster, Fullscreen
+from folium.plugins import MarkerCluster, Fullscreen, MiniMap
 import branca.colormap as cm
 
 ESRI_SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 col_temp = cm.LinearColormap(["#2166ac", "#fee08b", "#b2182b"], vmin=0, vmax=35, caption="Temp. media °C")
 
-m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True)
+m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True, preferCanvas=True)
 folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(m)
 folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(m)
 mc = MarkerCluster(name="Clima").add_to(m)
@@ -89,12 +106,13 @@ for _, p in base.dropna(subset=["temp_media_c"]).iterrows():
             max_width=280),
     ).add_to(mc)
 col_temp.add_to(m)
+MiniMap(toggle_display=True, position="bottomright").add_to(m)
 Fullscreen().add_to(m)
 folium.LayerControl(collapsed=False).add_to(m)
 m
 ```
 
-## Análisis
+## 03 · Análisis
 
 ```{python}
 #| label: graficos-clima

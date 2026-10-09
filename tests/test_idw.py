@@ -26,7 +26,7 @@ def test_idw_forma_y_decaimiento(tmp_path):
         "lat": [-10.0, -10.0], "lon": [-60.0, -40.0], "fecha": ["2025-01-15"] * 2,
         "pm25_media": [10.0, 50.0],
     })
-    lats, lons, m = idw_grid(df)
+    lats, lons, m, _dmin = idw_grid(df)
     assert lats[0] == LAT0 and lats[-1] <= LAT1 + RES and lons[0] == LON0 and lons[-1] <= LON1 + RES
     assert m.shape == (len(lats), len(lons))
     assert m.count() > 0  # hay celdas válidas dentro del corte

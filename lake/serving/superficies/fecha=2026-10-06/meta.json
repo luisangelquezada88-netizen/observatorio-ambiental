@@ -1,9 +1,9 @@
 {
  "fecha": "2026-10-06",
  "n_puntos": 150,
- "res_grados": 0.5,
+ "res_grados": 0.25,
  "p": 2.0,
- "corte_km": 1300.0,
+ "corte_km": 800.0,
  "niveles_aqi": [
   0,
   12,
@@ -13,7 +13,7 @@
   250.4,
   600
  ],
- "rmse_loo_ugm3": 12.69,
- "pm25_min": 0.5,
- "pm25_max": 32.7
+ "rmse_loo_ugm3": 11.77,
+ "pm25_min": 0.2,
+ "pm25_max": 31.8
 }

@@ -1,0 +1,23 @@
+name: ci
+
+# Portero rápido: valida código sin extraer nada (datos sintéticos, sin red).
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["lake/**"]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install -r requirements.txt
+      - name: Compilación
+        run: python -m compileall -q src dags tests scripts
+      - name: Tests
+        run: pytest tests/ -q
+      - name: Smoke dashboard (sin Quarto)
+        run: python scripts/smoke_qmd.py

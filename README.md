@@ -2,7 +2,7 @@
 
 > 🌍 **Demo en vivo:** https://luisangelquezada88-netizen.github.io/observatorio-ambiental/
 >
-> ![pipeline](https://github.com/luisangelquezada88-netizen/observatorio-ambiental/actions/workflows/pipeline.yml/badge.svg)
+> ![pipeline](https://github.com/luisangelquezada88-netizen/observatorio-ambiental/actions/workflows/pipeline.yml/badge.svg) ![ci](https://github.com/luisangelquezada88-netizen/observatorio-ambiental/actions/workflows/ci.yml/badge.svg)
 
 El presente repositorio contiene **EcoPulso**, un observatorio ambiental que monitorea a diario **150 puntos del planeta (60% Latinoamérica)** y mide indicadores como **PM2.5 y calidad del aire (bandas AQI), temperatura, precipitación, viento y caudal de ríos**, con tableros geográficos interactivos, tarjetas de indicadores y análisis cruzado clima-contaminación.
 

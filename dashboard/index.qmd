@@ -80,6 +80,9 @@ print('<div class="kpi-row">' + "".join(cards) + "</div>")
 
 ## 02 · Temperatura por país
 
+<button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('mapa-temp').requestFullscreen()">⛶ Pantalla completa</button>
+
+::: {#mapa-temp}
 ```{python}
 #| label: coropleta-temp
 #| fig-cap: "Temperatura media por país"
@@ -95,6 +98,7 @@ figt = px.choropleth(ppu, locations="iso3", color="temp_media_pais", hover_name=
 figt.update_layout(height=520, geo=dict(showframe=False, showcoastlines=True))
 figt.show()
 ```
+:::
 
 ## 03 · Visor maestro
 
@@ -118,9 +122,9 @@ def popup(p, filas):
     return folium.Popup(f"<b>{p['ciudad']}</b> ({p['pais']})<table>{rows}</table>", max_width=280)
 
 m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True, preferCanvas=True)
-folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(m)
+folium.TileLayer("OpenStreetMap", name="Calles OSM", show=False).add_to(m)
 folium.TileLayer(tiles=ESRI_CALLES, attr="Esri", name="Esri calles", show=False).add_to(m)
-folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite", show=False).add_to(m)
+folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(m)
 
 overlay_path = Path(f"../lake/serving/superficies/fecha={ult}/pm25.png")
 if overlay_path.exists():

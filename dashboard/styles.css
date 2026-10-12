@@ -66,6 +66,68 @@ table.table {
   font-size: 0.78rem;
 }
 
+/* EcoPulso móvil: los estilos de la leyenda viva (.eco-legend) van
+   inyectados DENTRO del iframe Folium (macro header); aquí solo la
+   carcasa externa: altura responsiva del iframe + fullscreen + KPI. */
+.map-wrap {
+  margin: 0 0 1.2rem;
+}
+.map-wrap iframe {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  background: #eef2f0;
+  display: block;
+}
+/* Folium/Branca fija altura por ratio 60% del ancho (~234px a 390px):
+   lo sobrescribimos a altura usable. */
+@media (max-width: 640px) {
+  .map-wrap div[style*="padding-bottom"] {
+    padding-bottom: 0 !important;
+    height: 70vh !important;
+    min-height: 420px;
+  }
+  .map-wrap iframe {
+    height: 70vh !important;
+    min-height: 420px;
+  }
+}
+@media (min-width: 641px) {
+  .map-wrap div[style*="padding-bottom"] {
+    padding-bottom: 0 !important;
+    height: 520px !important;
+  }
+  .map-wrap iframe {
+    height: 520px !important;
+  }
+}
+/* Fullscreen: el botón de la coropleta pide fullscreen del wrapper;
+   los mapas Folium usan su propio control interno (allowfullscreen). */
+.map-wrap:fullscreen {
+  padding: 0;
+  background: #fff;
+}
+#mapa-temp:fullscreen {
+  background: #fff;
+  padding: 0.5rem;
+  overflow: auto;
+}
+#mapa-temp .plotly,
+#mapa-temp .js-plotly-plot {
+  max-width: 100%;
+}
+
+/* Anti scroll-horizontal: KPI + página */
+body {
+  overflow-x: hidden;
+}
+.kpi {
+  min-width: 0;
+}
+.kpi-valor {
+  overflow-wrap: anywhere;
+}
+
 /* FRONT END: pill de frescura + responsive móvil */
 .pill {
   display: inline-block;

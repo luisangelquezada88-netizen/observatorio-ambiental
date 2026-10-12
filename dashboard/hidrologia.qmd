@@ -70,16 +70,69 @@ print('<div class="kpi-row">' + "".join(cards) + "</div>")
 
 Tamaño en escala logarítmica: el Amazonas (≈70 000 m³/s) aplastaría todo en escala lineal. Los puntos marcados como cuenca son cauces reales; el resto es celda de malla gruesa (ver nota).
 
+::: {.map-wrap}
 ```{python}
 #| label: visor-agua
 #| fig-cap: "Caudal GloFAS por punto (tamaño logarítmico)"
 import math
 import folium
 from folium.plugins import MarkerCluster, Fullscreen, MiniMap
+from branca.element import MacroElement
+from folium.template import Template
 
 ESRI_SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 
-m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True, preferCanvas=True)
+
+class EcoLegend(MacroElement):
+    """Leyenda como control Leaflet (bottomleft): viaja con el mapa en
+    fullscreen y no intercepta el botón (fix position:fixed)."""
+    _template = Template("""
+        {% macro header(this, kwargs) %}
+        <style>
+        .eco-legend{background:#fff;padding:0;border-radius:10px;font-size:12px;
+          line-height:1.45;color:#212529;box-shadow:0 1px 5px rgba(0,0,0,.25);max-width:215px}
+        .eco-legend details{margin:0}
+        .eco-legend summary{cursor:pointer;padding:8px 10px;font-weight:600;list-style:none}
+        .eco-legend summary::-webkit-details-marker{display:none}
+        .eco-legend summary::after{content:" \\25be";color:#52796f}
+        .eco-legend details:not([open]) summary::after{content:" \\25b8"}
+        .eco-legend .eco-body{padding:0 10px 8px}
+        .eco-legend .eco-hint{margin-top:6px;padding-top:6px;border-top:1px solid #e6e8e6;
+          font-size:11px;color:#6c757d}
+        .eco-legend .dot{font-size:13px}
+        </style>
+        {% endmacro %}
+        {% macro script(this, kwargs) %}
+        (function(){
+          var mapObj = {{this._parent.get_name()}};
+          var leg = L.control({position: 'bottomleft'});
+          leg.onAdd = function(map){
+            var div = L.DomUtil.create('div', 'eco-legend leaflet-control');
+            div.innerHTML = {{this.html_legend|tojson}};
+            L.DomEvent.disableClickPropagation(div);
+            L.DomEvent.disableScrollPropagation(div);
+            return div;
+          };
+          leg.addTo(mapObj);
+          mapObj.scrollWheelZoom.disable();
+          if (window.innerWidth < 640 && mapObj.dragging) {
+            mapObj.dragging.disable();
+            mapObj.once('click', function(){ mapObj.dragging.enable(); });
+            var d = document.querySelector('.eco-legend details');
+            if (d) d.removeAttribute('open');
+          }
+        })();
+        {% endmacro %}
+    """)
+
+    def __init__(self, html_legend):
+        super().__init__()
+        self._name = "EcoLegend"
+        self.html_legend = html_legend
+
+
+m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True,
+               preferCanvas=True, scrollWheelZoom=False)
 folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(m)
 folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(m)
 mc = MarkerCluster(name="Caudal").add_to(m)
@@ -97,16 +150,18 @@ for _, p in base.dropna(subset=["caudal_m3s"]).iterrows():
             f"<tr><td>Tipo</td><td><b>{'Cuenca' if es_c else 'Ciudad (malla)'}</b></td></tr></table>",
             max_width=280),
     ).add_to(mc)
-legend = ("<div style='position:fixed;bottom:20px;left:20px;z-index:9999;background:white;"
-          "padding:8px 10px;border-radius:8px;font-size:12px' class='map-legend'>"
-          "<span style='color:#01497c'>●</span> Cuenca<br>"
-          "<span style='color:#219ebc'>●</span> Ciudad (malla gruesa)</div>")
-m.get_root().html.add_child(folium.Element(legend))
-MiniMap(toggle_display=True, position="bottomright").add_to(m)
-Fullscreen().add_to(m)
-folium.LayerControl(collapsed=False).add_to(m)
+EcoLegend("<details open><summary>Caudal GloFAS</summary><div class='eco-body'>"
+          "<div><span class='dot' style='color:#01497c'>●</span> Cuenca</div>"
+          "<div><span class='dot' style='color:#219ebc'>●</span> Ciudad (malla gruesa)</div>"
+          "<div class='eco-hint'>Toca el mapa para interactuar · pellizca para zoom</div>"
+          "</div></details>").add_to(m)
+MiniMap(toggle_display=True, position="bottomright", width=100, height=100).add_to(m)
+Fullscreen(position="topright", title="Pantalla completa",
+           title_cancel="Salir de pantalla completa", force_separate_button=True).add_to(m)
+folium.LayerControl(collapsed=True).add_to(m)
 m
 ```
+:::
 
 ## 03 · Análisis
 
@@ -118,8 +173,8 @@ top = base.dropna(subset=["caudal_m3s"]).sort_values("caudal_m3s", ascending=Fal
 fig = px.bar(top, x="caudal_m3s", y="ciudad", color="region", log_x=True,
              title="Top 20 caudal GloFAS (m³/s, escala log)",
              labels={"caudal_m3s": "Caudal m³/s", "ciudad": "Punto"})
-fig.update_layout(height=560)
-fig.show()
+fig.update_layout(height=480, margin=dict(l=50, r=20, t=55, b=40))
+fig.show(config={"responsive": True, "displaylogo": False})
 display(top[["ciudad", "pais", "caudal_m3s", "caudal_max_m3s"]])
 ```
 

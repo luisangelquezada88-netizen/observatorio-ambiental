@@ -70,17 +70,70 @@ print('<div class="kpi-row">' + "".join(cards) + "</div>")
 
 Color por categoría OMS 2021, tamaño por concentración.
 
+::: {.map-wrap}
 ```{python}
 #| label: visor-aire
 #| fig-cap: "PM2.5 por punto (bandas AQI EPA; línea de referencia: guía OMS 24h ≤ 15 µg/m³)"
 import folium
 from folium.plugins import MarkerCluster, Fullscreen, MiniMap
+from branca.element import MacroElement
+from folium.template import Template
 
 ESRI_SAT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 OMS = {"Buena": "#2d6a4f", "Moderada": "#ee9b00", "Dañina (sensible)": "#ca6702",
        "Dañina": "#bb3e03", "Muy dañina": "#9d0208", "Peligrosa": "#6a040f"}
 
-m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True, preferCanvas=True)
+
+class EcoLegend(MacroElement):
+    """Leyenda como control Leaflet (bottomleft): viaja con el mapa en
+    fullscreen y no intercepta el botón (fix position:fixed)."""
+    _template = Template("""
+        {% macro header(this, kwargs) %}
+        <style>
+        .eco-legend{background:#fff;padding:0;border-radius:10px;font-size:12px;
+          line-height:1.45;color:#212529;box-shadow:0 1px 5px rgba(0,0,0,.25);max-width:215px}
+        .eco-legend details{margin:0}
+        .eco-legend summary{cursor:pointer;padding:8px 10px;font-weight:600;list-style:none}
+        .eco-legend summary::-webkit-details-marker{display:none}
+        .eco-legend summary::after{content:" \\25be";color:#52796f}
+        .eco-legend details:not([open]) summary::after{content:" \\25b8"}
+        .eco-legend .eco-body{padding:0 10px 8px}
+        .eco-legend .eco-hint{margin-top:6px;padding-top:6px;border-top:1px solid #e6e8e6;
+          font-size:11px;color:#6c757d}
+        .eco-legend .dot{font-size:13px}
+        </style>
+        {% endmacro %}
+        {% macro script(this, kwargs) %}
+        (function(){
+          var mapObj = {{this._parent.get_name()}};
+          var leg = L.control({position: 'bottomleft'});
+          leg.onAdd = function(map){
+            var div = L.DomUtil.create('div', 'eco-legend leaflet-control');
+            div.innerHTML = {{this.html_legend|tojson}};
+            L.DomEvent.disableClickPropagation(div);
+            L.DomEvent.disableScrollPropagation(div);
+            return div;
+          };
+          leg.addTo(mapObj);
+          mapObj.scrollWheelZoom.disable();
+          if (window.innerWidth < 640 && mapObj.dragging) {
+            mapObj.dragging.disable();
+            mapObj.once('click', function(){ mapObj.dragging.enable(); });
+            var d = document.querySelector('.eco-legend details');
+            if (d) d.removeAttribute('open');
+          }
+        })();
+        {% endmacro %}
+    """)
+
+    def __init__(self, html_legend):
+        super().__init__()
+        self._name = "EcoLegend"
+        self.html_legend = html_legend
+
+
+m = folium.Map(location=[-12, -62], zoom_start=3, tiles=None, control_scale=True,
+               preferCanvas=True, scrollWheelZoom=False)
 folium.TileLayer("OpenStreetMap", name="Calles OSM").add_to(m)
 folium.TileLayer(tiles=ESRI_SAT, attr="Esri", name="Satélite").add_to(m)
 mc = MarkerCluster(name="PM2.5").add_to(m)
@@ -97,15 +150,17 @@ for _, p in base.dropna(subset=["pm25_media"]).iterrows():
             f"<tr><td>NO₂</td><td><b>{f1(p['no2_media'])} µg/m³</b></td></tr></table>",
             max_width=280),
     ).add_to(mc)
-legend = ("<div style='position:fixed;bottom:20px;left:20px;z-index:9999;background:white;"
-          "padding:8px 10px;border-radius:8px;font-size:12px' class='map-legend'><b>PM2.5 (AQI EE. UU.)</b><br>" +
-          "".join(f"<span style='color:{c}'>●</span> {k}<br>" for k, c in OMS.items()) + "</div>")
-m.get_root().html.add_child(folium.Element(legend))
-MiniMap(toggle_display=True, position="bottomright").add_to(m)
-Fullscreen().add_to(m)
-folium.LayerControl(collapsed=False).add_to(m)
+items = "".join(f"<div><span class='dot' style='color:{c}'>●</span> {k}</div>" for k, c in OMS.items())
+EcoLegend(f"<details open><summary>PM2.5 (AQI EE. UU.)</summary><div class='eco-body'>"
+          f"{items}<div class='eco-hint'>Toca el mapa para interactuar · pellizca para zoom</div>"
+          f"</div></details>").add_to(m)
+MiniMap(toggle_display=True, position="bottomright", width=100, height=100).add_to(m)
+Fullscreen(position="topright", title="Pantalla completa",
+           title_cancel="Salir de pantalla completa", force_separate_button=True).add_to(m)
+folium.LayerControl(collapsed=True).add_to(m)
 m
 ```
+:::
 
 ## 03 · Análisis
 
@@ -119,16 +174,16 @@ fig1 = px.bar(top, x="pm25_media", y="ciudad", color="categoria_pm25_aqi",
               labels={"pm25_media": "PM2.5 media", "ciudad": "Ciudad"})
 fig1.add_vline(x=15, line_dash="dash", line_color="#2d6a4f",
                annotation_text="Guía OMS 24h: 15 µg/m³")
-fig1.update_layout(height=560)
-fig1.show()
+fig1.update_layout(height=480, margin=dict(l=50, r=20, t=55, b=40))
+fig1.show(config={"responsive": True, "displaylogo": False})
 
 fig2 = px.histogram(base.dropna(subset=["pm25_media"]), x="pm25_media", color="region",
                     nbins=30, title="Distribución de PM2.5 por región",
                     labels={"pm25_media": "PM2.5 µg/m³"})
 fig2.add_vline(x=15, line_dash="dash", line_color="#2d6a4f",
                annotation_text="Guía OMS 24h: 15 µg/m³")
-fig2.update_layout(height=380)
-fig2.show()
+fig2.update_layout(height=380, margin=dict(l=50, r=20, t=55, b=40))
+fig2.show(config={"responsive": True, "displaylogo": False})
 ```
 
 > Bandas de color: breakpoints del AQI (EPA EE. UU.). Línea verde: guía OMS 2021 (PM2.5 24h ≤ 15 µg/m³). Bandas calculadas en `src/transform/indicadores.py`.

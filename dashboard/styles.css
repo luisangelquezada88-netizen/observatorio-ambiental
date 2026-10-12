@@ -128,6 +128,23 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* Plotly: evita el solape título/modebar en móvil. El título va alineado
+   a la izquierda desde el template "eco"; aquí se achica y se compacta
+   la botonera en pantallas chicas. */
+.js-plotly-plot,
+.plot-container {
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .js-plotly-plot .plotly .modebar {
+    transform: scale(0.85);
+    transform-origin: top right;
+  }
+  .js-plotly-plot .plotly text.gtitle {
+    font-size: 13px !important;
+  }
+}
+
 /* FRONT END: pill de frescura + responsive móvil */
 .pill {
   display: inline-block;

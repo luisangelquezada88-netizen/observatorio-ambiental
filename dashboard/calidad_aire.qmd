@@ -25,8 +25,8 @@ import plotly.io as pio
 
 pio.templates["eco"] = dict(layout=dict(
     font=dict(family="Inter, sans-serif", size=12),
-    title=dict(font=dict(family="Fraunces, serif", size=16)),
-    margin=dict(l=50, r=20, t=55, b=40),
+    title=dict(font=dict(family="Fraunces, serif", size=15), x=0.02, xanchor="left", automargin=True),
+    margin=dict(l=50, r=20, t=75, b=40),
     paper_bgcolor="white", plot_bgcolor="white",
     xaxis=dict(gridcolor="#edf0f0"), yaxis=dict(gridcolor="#edf0f0")))
 pio.templates.default = "plotly_white+eco"
@@ -170,11 +170,11 @@ import plotly.express as px
 
 top = base.dropna(subset=["pm25_media"]).sort_values("pm25_media", ascending=False).head(20)
 fig1 = px.bar(top, x="pm25_media", y="ciudad", color="categoria_pm25_aqi",
-              color_discrete_map=OMS, title="Top 20 PM2.5 (µg/m³) · bandas AQI (EPA)",
+              color_discrete_map=OMS, title="Top 20 PM2.5 (µg/m³) · bandas AQI",
               labels={"pm25_media": "PM2.5 media", "ciudad": "Ciudad"})
 fig1.add_vline(x=15, line_dash="dash", line_color="#2d6a4f",
                annotation_text="Guía OMS 24h: 15 µg/m³")
-fig1.update_layout(height=480, margin=dict(l=50, r=20, t=55, b=40))
+fig1.update_layout(height=480, margin=dict(l=50, r=20, t=75, b=40))
 fig1.show(config={"responsive": True, "displaylogo": False})
 
 fig2 = px.histogram(base.dropna(subset=["pm25_media"]), x="pm25_media", color="region",
@@ -182,7 +182,7 @@ fig2 = px.histogram(base.dropna(subset=["pm25_media"]), x="pm25_media", color="r
                     labels={"pm25_media": "PM2.5 µg/m³"})
 fig2.add_vline(x=15, line_dash="dash", line_color="#2d6a4f",
                annotation_text="Guía OMS 24h: 15 µg/m³")
-fig2.update_layout(height=380, margin=dict(l=50, r=20, t=55, b=40))
+fig2.update_layout(height=380, margin=dict(l=50, r=20, t=75, b=40))
 fig2.show(config={"responsive": True, "displaylogo": False})
 ```
 

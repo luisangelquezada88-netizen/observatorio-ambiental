@@ -30,8 +30,8 @@ import plotly.io as pio
 
 pio.templates["eco"] = dict(layout=dict(
     font=dict(family="Inter, sans-serif", size=12),
-    title=dict(font=dict(family="Fraunces, serif", size=16)),
-    margin=dict(l=50, r=20, t=55, b=40),
+    title=dict(font=dict(family="Fraunces, serif", size=15), x=0.02, xanchor="left", automargin=True),
+    margin=dict(l=50, r=20, t=75, b=40),
     paper_bgcolor="white", plot_bgcolor="white",
     xaxis=dict(gridcolor="#edf0f0"), yaxis=dict(gridcolor="#edf0f0")))
 pio.templates.default = "plotly_white+eco"
@@ -78,30 +78,7 @@ cards = [
 print('<div class="kpi-row">' + "".join(cards) + "</div>")
 ```
 
-## 02 · Temperatura por país
-
-<button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('mapa-temp').requestFullscreen()">⛶ Pantalla completa</button>
-
-::: {#mapa-temp .map-wrap}
-```{python}
-#| label: coropleta-temp
-#| fig-cap: "Temperatura media por país"
-import plotly.express as px
-
-pfiles = sorted(Path("../lake/serving/indicador_pais").glob("fecha=*/indicador_pais.parquet"))
-pp = pd.concat([pd.read_parquet(f) for f in pfiles], ignore_index=True) if pfiles else pd.DataFrame()
-ppu = pp[pp["fecha"] == ult].copy() if not pp.empty else pp
-figt = px.choropleth(ppu, locations="iso3", color="temp_media_pais", hover_name="pais",
-                     color_continuous_scale="RdYlBu_r",
-                     title="Temperatura media por país (°C)",
-                     labels={"temp_media_pais": "Temp. media", "iso3": "País"})
-figt.update_layout(height=460, margin=dict(l=50, r=20, t=55, b=40),
-                   geo=dict(showframe=False, showcoastlines=True))
-figt.show(config={"responsive": True, "displaylogo": False})
-```
-:::
-
-## 03 · Visor maestro
+## 02 · Visor maestro
 
 Enciende las capas **Aire · Clima · Agua · Calor · IDW** (arriba a la derecha; todas arrancan apagadas) y cambia el fondo entre calles y satélite.
 
@@ -248,7 +225,32 @@ m
 ```
 :::
 
-## 05 · Análisis cruzado
+## 03 · Temperatura por país
+
+<button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('mapa-temp').requestFullscreen()">⛶ Pantalla completa</button>
+
+::: {#mapa-temp .map-wrap}
+```{python}
+#| label: coropleta-temp
+#| fig-cap: "Temperatura media por país"
+import plotly.express as px
+
+pfiles = sorted(Path("../lake/serving/indicador_pais").glob("fecha=*/indicador_pais.parquet"))
+pp = pd.concat([pd.read_parquet(f) for f in pfiles], ignore_index=True) if pfiles else pd.DataFrame()
+ppu = pp[pp["fecha"] == ult].copy() if not pp.empty else pp
+figt = px.choropleth(ppu, locations="iso3", color="temp_media_pais", hover_name="pais",
+                     color_continuous_scale="RdYlBu_r",
+                     title="Temperatura media por país (°C)",
+                     labels={"temp_media_pais": "Temp. media", "iso3": "País"})
+figt.update_layout(height=460, margin=dict(l=50, r=20, t=75, b=40),
+                   geo=dict(showframe=False, showcoastlines=True))
+figt.show(config={"responsive": True, "displaylogo": False})
+```
+:::
+
+## 04 · Análisis cruzado
+
+¿El calor y la lluvia mueven la contaminación? Dos cruces rápidos, con la guía OMS como referencia.
 
 ```{python}
 #| label: cruzados
@@ -256,22 +258,22 @@ import plotly.express as px
 
 cru = base.dropna(subset=["temp_media_c", "pm25_media"])
 fig1 = px.scatter(cru, x="temp_media_c", y="pm25_media", color="region", hover_name="ciudad",
-                  title="¿Calor y contaminación van juntos? Temp. media vs PM2.5",
+                  title="Temp. media vs PM2.5",
                   labels={"temp_media_c": "Temp. media °C", "pm25_media": "PM2.5 µg/m³"})
 fig1.add_hline(y=15, line_dash="dash", line_color="#2d6a4f",
                annotation_text="Guía OMS 24h: 15 µg/m³")
-fig1.update_layout(height=380, margin=dict(l=50, r=20, t=55, b=40))
+fig1.update_layout(height=380, margin=dict(l=50, r=20, t=75, b=40))
 fig1.show(config={"responsive": True, "displaylogo": False})
 
 cru2 = base.dropna(subset=["precipitacion_mm", "us_aqi_max"])
 fig2 = px.scatter(cru2, x="precipitacion_mm", y="us_aqi_max", color="region", hover_name="ciudad",
-                  title="¿La lluvia limpia el aire? Precipitación vs AQI máximo",
+                  title="Precipitación vs AQI máximo",
                   labels={"precipitacion_mm": "Precipitación mm", "us_aqi_max": "AQI US máx"})
-fig2.update_layout(height=380, margin=dict(l=50, r=20, t=55, b=40))
+fig2.update_layout(height=380, margin=dict(l=50, r=20, t=75, b=40))
 fig2.show(config={"responsive": True, "displaylogo": False})
 ```
 
-## 04 · Evolución diaria (slider temporal)
+## 05 · Evolución diaria (slider temporal)
 
 Arrastra el control para animar el PM2.5 de los últimos 14 días. El historial se acumula solo en cada run (D-12).
 

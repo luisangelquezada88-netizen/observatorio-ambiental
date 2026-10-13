@@ -1,0 +1,113 @@
+<!-- EcoPulso: ajuste móvil de figuras Plotly (100% estático, sin backend).
+     Problema a 390px: las leyendas laterales (6 bandas AQI, regiones) y la
+     colorbar de la coropleta comprimen el área de dibujo a ~200px y todo se
+     solapa (títulos, leyendas, datos, botonera). En ≤640px este snippet, vía
+     Plotly.relayout:
+       - leyendas discretas → abajo en horizontal (envuelven solas)
+       - colorbar de la coropleta → abajo en horizontal
+       - márgenes: laterales angostos, superior con sitio para 2 líneas
+         (título + botonera), inferior según tamaño de leyenda
+       - tipografía menor y +60px de alto
+     Al volver a desktop restaura los originales guardados por figura.
+     Se carga con include-after-body. -->
+<script>
+(function () {
+  var BP = 640;
+  // Base = template "eco" + update_layout de los .qmd (mantener sincronizado).
+  var DESKTOP = { t: 75, l: 50, r: 20, b: 40, title: 15, font: 12 };
+  var MOBILE = { t: 96, l: 38, r: 12, title: 13, font: 11, dheight: 60 };
+
+  function put(update, key, val) {
+    if (val !== undefined) update[key] = val;
+  }
+
+  function legendCount(gd) {
+    try {
+      var d = gd._fullData || [];
+      return d.filter(function (tr) { return tr.showlegend === true && tr.visible !== false; }).length;
+    } catch (e) { return 0; }
+  }
+
+  function snap(gd) {
+    // Guarda originales una sola vez para restaurar en desktop.
+    if (!gd.dataset.ecoSnap && gd._fullLayout) {
+      try {
+        var L = gd._fullLayout.legend || {};
+        var C = (gd._fullLayout.coloraxis && gd._fullLayout.coloraxis.colorbar) || null;
+        gd.dataset.ecoSnap = JSON.stringify({
+          h: gd._fullLayout.height,
+          leg: { orientation: L.orientation, x: L.x, y: L.y, xanchor: L.xanchor, yanchor: L.yanchor },
+          cb: C ? { orientation: C.orientation, x: C.x, y: C.y, xanchor: C.xanchor,
+                    yanchor: C.yanchor, len: C.len, thickness: C.thickness,
+                    tside: C.title && C.title.side } : null
+        });
+      } catch (e) { /* reintenta en el siguiente pase */ }
+    }
+  }
+
+  function tune() {
+    if (!window.Plotly) return;
+    var mobile = window.innerWidth < BP;
+    document.querySelectorAll(".js-plotly-plot").forEach(function (gd) {
+      try {
+        snap(gd);
+        var orig = gd.dataset.ecoSnap ? JSON.parse(gd.dataset.ecoSnap) : null;
+        var nLeg = legendCount(gd);
+        var hasCb = !!(gd._fullLayout && gd._fullLayout.coloraxis);
+        var update;
+        if (mobile) {
+          var b = (hasCb || nLeg > 3) ? 104 : 64;
+          update = {
+            "margin.t": MOBILE.t, "margin.l": MOBILE.l, "margin.r": MOBILE.r, "margin.b": b,
+            "title.font.size": MOBILE.title, "font.size": MOBILE.font,
+            "legend.orientation": "h", "legend.x": 0, "legend.xanchor": "left",
+            "legend.y": -0.18, "legend.yanchor": "top"
+          };
+          if (hasCb) {
+            update["coloraxis.colorbar.orientation"] = "h";
+            update["coloraxis.colorbar.x"] = 0.5;
+            update["coloraxis.colorbar.xanchor"] = "center";
+            update["coloraxis.colorbar.y"] = -0.22;
+            update["coloraxis.colorbar.len"] = 0.85;
+            update["coloraxis.colorbar.thickness"] = 12;
+            update["coloraxis.colorbar.title.side"] = "top";
+          }
+          if (orig && orig.h) update.height = orig.h + MOBILE.dheight;
+        } else {
+          update = {
+            "margin.t": DESKTOP.t, "margin.l": DESKTOP.l, "margin.r": DESKTOP.r,
+            "margin.b": DESKTOP.b, "title.font.size": DESKTOP.title, "font.size": DESKTOP.font
+          };
+          if (orig) {
+            if (orig.h) update.height = orig.h;
+            put(update, "legend.orientation", orig.leg.orientation);
+            put(update, "legend.x", orig.leg.x);
+            put(update, "legend.y", orig.leg.y);
+            put(update, "legend.xanchor", orig.leg.xanchor);
+            put(update, "legend.yanchor", orig.leg.yanchor);
+            if (orig.cb) {
+              put(update, "coloraxis.colorbar.orientation", orig.cb.orientation);
+              put(update, "coloraxis.colorbar.x", orig.cb.x);
+              put(update, "coloraxis.colorbar.y", orig.cb.y);
+              put(update, "coloraxis.colorbar.xanchor", orig.cb.xanchor);
+              put(update, "coloraxis.colorbar.yanchor", orig.cb.yanchor);
+              put(update, "coloraxis.colorbar.len", orig.cb.len);
+              put(update, "coloraxis.colorbar.thickness", orig.cb.thickness);
+              if (orig.cb.tside !== undefined) update["coloraxis.colorbar.title.side"] = orig.cb.tside;
+            }
+          }
+        }
+        window.Plotly.relayout(gd, update);
+      } catch (e) { /* figura aún no lista; el siguiente pase la toma */ }
+    });
+  }
+
+  var timer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(timer);
+    timer = setTimeout(tune, 200);
+  });
+  document.addEventListener("DOMContentLoaded", function () { setTimeout(tune, 300); });
+  window.addEventListener("load", tune);
+})();
+</script>

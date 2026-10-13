@@ -33,7 +33,7 @@ pio.templates["eco"] = dict(layout=dict(
     title=dict(font=dict(family="Fraunces, serif", size=15), x=0.02, xanchor="left", automargin=True),
     margin=dict(l=50, r=20, t=75, b=40),
     paper_bgcolor="white", plot_bgcolor="white",
-    xaxis=dict(gridcolor="#edf0f0"), yaxis=dict(gridcolor="#edf0f0")))
+    xaxis=dict(gridcolor="#edf0f0", automargin=True), yaxis=dict(gridcolor="#edf0f0", automargin=True)))
 pio.templates.default = "plotly_white+eco"
 ```
 
@@ -211,8 +211,8 @@ HeatMap(
 ).add_to(hg)
 hg.add_to(m)
 
-col_temp.caption = "Temp. media °C"
-col_temp.add_to(m)
+# Sin barra de escala en el maestro: el color de clima se lee en los
+# tooltips y la leyenda AQI manda (menos ruido arriba del mapa).
 items_oms = "".join(f"<div><span class='dot' style='color:{c}'>●</span> {k}</div>" for k, c in OMS.items())
 EcoLegend(f"<details open><summary>PM2.5 (AQI EE. UU.)</summary><div class='eco-body'>"
           f"{items_oms}<div class='eco-hint'>Activa capas arriba a la derecha · toca para interactuar</div>"
@@ -244,7 +244,7 @@ figt = px.choropleth(ppu, locations="iso3", color="temp_media_pais", hover_name=
                      labels={"temp_media_pais": "Temp. media", "iso3": "País"})
 figt.update_layout(height=460, margin=dict(l=50, r=20, t=75, b=40),
                    geo=dict(showframe=False, showcoastlines=True))
-figt.show(config={"responsive": True, "displaylogo": False})
+figt.show(config={"responsive": True, "displaylogo": False, "modebarButtonsToRemove": ["lasso2d", "select2d"]})
 ```
 :::
 
@@ -263,14 +263,14 @@ fig1 = px.scatter(cru, x="temp_media_c", y="pm25_media", color="region", hover_n
 fig1.add_hline(y=15, line_dash="dash", line_color="#2d6a4f",
                annotation_text="Guía OMS 24h: 15 µg/m³")
 fig1.update_layout(height=380, margin=dict(l=50, r=20, t=75, b=40))
-fig1.show(config={"responsive": True, "displaylogo": False})
+fig1.show(config={"responsive": True, "displaylogo": False, "modebarButtonsToRemove": ["lasso2d", "select2d"]})
 
 cru2 = base.dropna(subset=["precipitacion_mm", "us_aqi_max"])
 fig2 = px.scatter(cru2, x="precipitacion_mm", y="us_aqi_max", color="region", hover_name="ciudad",
                   title="Precipitación vs AQI máximo",
                   labels={"precipitacion_mm": "Precipitación mm", "us_aqi_max": "AQI US máx"})
 fig2.update_layout(height=380, margin=dict(l=50, r=20, t=75, b=40))
-fig2.show(config={"responsive": True, "displaylogo": False})
+fig2.show(config={"responsive": True, "displaylogo": False, "modebarButtonsToRemove": ["lasso2d", "select2d"]})
 ```
 
 ## 05 · Evolución diaria (slider temporal)

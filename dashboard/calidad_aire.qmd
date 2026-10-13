@@ -28,7 +28,7 @@ pio.templates["eco"] = dict(layout=dict(
     title=dict(font=dict(family="Fraunces, serif", size=15), x=0.02, xanchor="left", automargin=True),
     margin=dict(l=50, r=20, t=75, b=40),
     paper_bgcolor="white", plot_bgcolor="white",
-    xaxis=dict(gridcolor="#edf0f0"), yaxis=dict(gridcolor="#edf0f0")))
+    xaxis=dict(gridcolor="#edf0f0", automargin=True), yaxis=dict(gridcolor="#edf0f0", automargin=True)))
 pio.templates.default = "plotly_white+eco"
 ```
 
@@ -175,7 +175,7 @@ fig1 = px.bar(top, x="pm25_media", y="ciudad", color="categoria_pm25_aqi",
 fig1.add_vline(x=15, line_dash="dash", line_color="#2d6a4f",
                annotation_text="Guía OMS 24h: 15 µg/m³")
 fig1.update_layout(height=480, margin=dict(l=50, r=20, t=75, b=40))
-fig1.show(config={"responsive": True, "displaylogo": False})
+fig1.show(config={"responsive": True, "displaylogo": False, "modebarButtonsToRemove": ["lasso2d", "select2d"]})
 
 fig2 = px.histogram(base.dropna(subset=["pm25_media"]), x="pm25_media", color="region",
                     nbins=30, title="Distribución de PM2.5 por región",
@@ -183,7 +183,7 @@ fig2 = px.histogram(base.dropna(subset=["pm25_media"]), x="pm25_media", color="r
 fig2.add_vline(x=15, line_dash="dash", line_color="#2d6a4f",
                annotation_text="Guía OMS 24h: 15 µg/m³")
 fig2.update_layout(height=380, margin=dict(l=50, r=20, t=75, b=40))
-fig2.show(config={"responsive": True, "displaylogo": False})
+fig2.show(config={"responsive": True, "displaylogo": False, "modebarButtonsToRemove": ["lasso2d", "select2d"]})
 ```
 
 > Bandas de color: breakpoints del AQI (EPA EE. UU.). Línea verde: guía OMS 2021 (PM2.5 24h ≤ 15 µg/m³). Bandas calculadas en `src/transform/indicadores.py`.

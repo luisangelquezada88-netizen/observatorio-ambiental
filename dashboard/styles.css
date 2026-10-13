@@ -136,6 +136,13 @@ body {
   max-width: 100%;
 }
 @media (max-width: 640px) {
+  /* Línea 2 para la botonera: el título vive en la línea 1 (izquierda).
+     Sin esto, título y modebar comparten la misma altura y se solapan
+     aunque el título sea corto. Se cubren ambas clases por versión de Plotly. */
+  .js-plotly-plot .modebar-container,
+  .js-plotly-plot .modebar {
+    top: 36px !important;
+  }
   .js-plotly-plot .plotly .modebar {
     transform: scale(0.85);
     transform-origin: top right;

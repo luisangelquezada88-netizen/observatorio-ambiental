@@ -28,7 +28,7 @@ pio.templates["eco"] = dict(layout=dict(
     title=dict(font=dict(family="Fraunces, serif", size=15), x=0.02, xanchor="left", automargin=True),
     margin=dict(l=50, r=20, t=75, b=40),
     paper_bgcolor="white", plot_bgcolor="white",
-    xaxis=dict(gridcolor="#edf0f0"), yaxis=dict(gridcolor="#edf0f0")))
+    xaxis=dict(gridcolor="#edf0f0", automargin=True), yaxis=dict(gridcolor="#edf0f0", automargin=True)))
 pio.templates.default = "plotly_white+eco"
 ```
 
@@ -174,7 +174,7 @@ fig = px.bar(top, x="caudal_m3s", y="ciudad", color="region", log_x=True,
              title="Top 20 caudal (m³/s, escala log)",
              labels={"caudal_m3s": "Caudal m³/s", "ciudad": "Punto"})
 fig.update_layout(height=480, margin=dict(l=50, r=20, t=75, b=40))
-fig.show(config={"responsive": True, "displaylogo": False})
+fig.show(config={"responsive": True, "displaylogo": False, "modebarButtonsToRemove": ["lasso2d", "select2d"]})
 display(top[["ciudad", "pais", "caudal_m3s", "caudal_max_m3s"]])
 ```
 

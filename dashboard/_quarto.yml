@@ -34,6 +34,7 @@ format:
       - cosmo
       - custom.scss
     css: styles.css
+    include-after-body: plotly-mobile.html
     toc: true
     embed-resources: true
 

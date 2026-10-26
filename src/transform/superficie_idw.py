@@ -42,6 +42,8 @@ def idw_grid(df: pd.DataFrame, res: float = RES, p: float = P,
              corte_km: float = CORTE_KM) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Devuelve (lats, lons, malla enmascarada, dmin_km a la estación más cercana)."""
     pts = df.dropna(subset=["pm25_media", "lat", "lon"]).copy()
+    if pts.empty:
+        raise ValueError("sin puntos PM2.5 válidos para interpolar")
     slat, slon = pts["lat"].to_numpy(), pts["lon"].to_numpy()
     sval = pts["pm25_media"].to_numpy(dtype=float)
     lats = np.arange(LAT0, LAT1 + res, res)
@@ -78,24 +80,47 @@ def loo_rmse(df: pd.DataFrame, p: float = P, corte_km: float = CORTE_KM) -> floa
     return float(np.sqrt(np.mean((pred[ok] - sval[ok]) ** 2))) if ok.any() else float("nan")
 
 
+def _omitir(fecha: str, dest: Path, motivo: str) -> dict:
+    """Escribe meta 'sin_datos' y elimina PNG previo (idempotencia).
+
+    La superficie es un extra visual: su ausencia no debe tumbar la ingesta.
+    """
+    dest.mkdir(parents=True, exist_ok=True)
+    png = dest / "pm25.png"
+    if png.exists():
+        png.unlink()
+    meta = {"fecha": fecha, "estado": "sin_datos", "motivo": motivo, "n_puntos": 0,
+            "res_grados": RES, "p": P, "corte_km": CORTE_KM, "niveles_aqi": NIVELES,
+            "rmse_loo_ugm3": None, "pm25_min": None, "pm25_max": None}
+    (dest / "meta.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
+    print(f"[idw] {fecha}: omitido ({motivo})", flush=True)
+    print(f"::warning::IDW omitido para {fecha}: {motivo}", flush=True)
+    return meta
+
+
 def generar(fecha: str, lake: str | Path = "lake") -> dict:
+    lake = Path(lake)
+    src = lake / "serving" / "indicador_diario" / f"fecha={fecha}"
+    dest = lake / "serving" / "superficies" / f"fecha={fecha}"
+    fich = sorted(src.glob("*.parquet"))
+    if not fich:
+        return _omitir(fecha, dest, "sin serving diario")
+    df = pd.concat([pd.read_parquet(f) for f in fich], ignore_index=True)
+
+    validos = int(df["pm25_media"].notna().sum()) if "pm25_media" in df.columns else 0
+    print(f"[idw] {fecha}: PM2.5 válidos {validos}/{len(df)}", flush=True)
+    if validos < 3:
+        return _omitir(fecha, dest, f"PM2.5 válidos insuficientes ({validos})")
+
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.colors import BoundaryNorm, ListedColormap
 
-    lake = Path(lake)
-    src = lake / "serving" / "indicador_diario" / f"fecha={fecha}"
-    fich = sorted(src.glob("*.parquet"))
-    if not fich:
-        raise FileNotFoundError(f"sin serving diario para {fecha}")
-    df = pd.concat([pd.read_parquet(f) for f in fich], ignore_index=True)
-
     lats, lons, malla, dmin = idw_grid(df)
     rmse = loo_rmse(df)
 
-    dest = lake / "serving" / "superficies" / f"fecha={fecha}"
     dest.mkdir(parents=True, exist_ok=True)
     cmap = ListedColormap(COLORES)
     norm = BoundaryNorm(NIVELES, cmap.N)
@@ -109,7 +134,8 @@ def generar(fecha: str, lake: str | Path = "lake") -> dict:
     fig.savefig(dest / "pm25.png", transparent=True, bbox_inches="tight", pad_inches=0)
     plt.close(fig)
 
-    meta = {"fecha": fecha, "n_puntos": int(df["pm25_media"].notna().sum()),
+    meta = {"fecha": fecha, "estado": "ok",
+            "n_puntos": int(df["pm25_media"].notna().sum()),
             "res_grados": RES, "p": P, "corte_km": CORTE_KM, "niveles_aqi": NIVELES,
             "rmse_loo_ugm3": None if np.isnan(rmse) else round(rmse, 2),
             "pm25_min": round(float(np.nanmin(malla)), 1),

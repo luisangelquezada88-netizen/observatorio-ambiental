@@ -79,5 +79,20 @@
 ## D-13 — Superficie IDW de PM2.5 (2026-10-07)
 - IDW p=2, malla 0.5° (bbox −56…33/−120…−30), corte 1300 km; raster en bandas
   AQI para coherencia punto↔raster; validación leave-one-out publicada (RMSE).
+- v2 (2026-10-09): malla 0.25°, corte 800 km y fundido alfa por distancia
+  (lejos de estaciones = transparente); el derrame oceánico se vuelve honesto.
 - Límites: ignora barreras orográficas (Andes) y no enmascara costa; se muestran,
-  no se ocultan. PNG ~200 KB/día dentro de `lake/serving` (entra al historial).
+  no se ocultan. PNG ~90 KB/día dentro de `lake/serving` (entra al historial).
+
+## D-14 — Cron caído por migración de runner (2026-10-26)
+- Síntoma: runs programados 22–26 oct fallan en "Superficie IDW" a los ~3 s;
+  persistencia, render y deploy quedan skipped → sitio congelado en 2026-10-20.
+- Evidencia: ingesta (22 min, normal) y transform OK; fallo instantáneo solo en el
+  paso que importa matplotlib. Coincide con la migración gradual de `ubuntu-latest`
+  a Ubuntu 26.04 anunciada para 19-oct→19-nov (actions/runner-images#14748).
+- Corrección: (1) `runs-on: ubuntu-24.04` fijo en pipeline y CI; (2) IDW degradable:
+  <3 PM2.5 válidos → meta `estado=sin_datos`, sin PNG y exit 0; (3) step IDW con
+  `continue-on-error` para que un extra visual nunca bloquee ingesta ni despliegue;
+  (4) anotaciones `::warning::` públicas (visibles sin logs) con el diagnóstico.
+- Deuda: probar Ubuntu 26 en rama aparte; el pin a 24.04 es temporal.
+- Backfill manual de 2026-10-21..25 para reparar la serie del slider.

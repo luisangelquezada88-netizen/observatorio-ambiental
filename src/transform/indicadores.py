@@ -144,6 +144,11 @@ def transformar(fecha: str, lake: str | Path = "lake") -> dict:
         # Contrato estable: fecha siempre string YYYY-MM-DD (evita timestamp vs partition).
         oro["fecha"] = pd.to_datetime(oro["fecha"]).dt.strftime("%Y-%m-%d")
         oro["categoria_pm25_aqi"] = oro["pm25_media"].apply(_categoria_pm25) if "pm25_media" in oro.columns else None
+        validos_pm25 = int(oro["pm25_media"].notna().sum()) if "pm25_media" in oro.columns else 0
+        print(f"[transform] PM2.5 válidos: {validos_pm25}/{len(oro)}", flush=True)
+        if validos_pm25 == 0:
+            # Anotación pública del run (visible sin logs) y aviso para IDW.
+            print("::warning::Transform sin PM2.5 válido: la superficie IDW se omitirá", flush=True)
 
         d1 = lake / "serving" / "indicador_diario" / f"fecha={fecha}"
         d1.mkdir(parents=True, exist_ok=True)

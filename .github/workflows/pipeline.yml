@@ -19,10 +19,10 @@ concurrency:
 
 jobs:
   ingesta-transform:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: {python-version: "3.11"}
       - uses: quarto-dev/quarto-actions/setup@v2
       - run: pip install -r requirements.txt
@@ -34,7 +34,6 @@ jobs:
           python -m src.extract.openmeteo_calidad_aire --fecha "$FECHA"
           python -m src.extract.openmeteo_hidrologia --fecha "$FECHA"
       - name: Fuentes anuales (solo día 1 del mes)
-        if: github.event.schedule == '' || true
         run: |
           YEAR=$(date -u -d 'yesterday' +%Y)
           PREV=$((YEAR-1))
@@ -46,6 +45,9 @@ jobs:
       - name: Transform
         run: python -m src.transform.indicadores --fecha "$FECHA"
       - name: Superficie IDW
+        # Extra visual: si falla, la ingesta y el sitio siguen vivos (el fallo
+        # queda visible como step naranja + anotación ::warning::).
+        continue-on-error: true
         run: python -m src.transform.superficie_idw --fecha "$FECHA"
       - name: Tests rápidos
         run: pytest tests/ -q
@@ -68,7 +70,7 @@ jobs:
 
   deploy:
     needs: ingesta-transform
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: {name: github-pages, url: "${{ steps.deployment.outputs.page_url }}"}
     steps:
       - id: deployment

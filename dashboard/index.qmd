@@ -353,7 +353,10 @@ import json
 meta_path = Path(f"../lake/serving/superficies/fecha={ult}/meta.json")
 if meta_path.exists():
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    print(f"""<div class="kpi-row">
+    if meta.get("estado") == "sin_datos" or meta.get("rmse_loo_ugm3") is None:
+        print(f"> Superficie no generada para {ult}: {meta.get('motivo', 'datos insuficientes')}.")
+    else:
+        print(f"""<div class="kpi-row">
 <div class="kpi kpi-aire"><div class="kpi-valor">{meta['rmse_loo_ugm3']}<span class="kpi-unidad">µg/m³</span></div><div class="kpi-etiqueta">RMSE leave-one-out · {meta['n_puntos']} estaciones</div></div>
 <div class="kpi kpi-gris"><div class="kpi-valor">IDW p={meta['p']}</div><div class="kpi-etiqueta">Malla {meta['res_grados']}° · corte {meta['corte_km']:.0f} km</div></div>
 </div>""")

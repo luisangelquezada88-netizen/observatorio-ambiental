@@ -56,3 +56,31 @@ def test_generar_idempotente(tmp_path):
     dest = lake / "serving" / "superficies" / "fecha=2025-01-15"
     assert (dest / "pm25.png").stat().st_size > 1000
     assert json.loads((dest / "meta.json").read_text())["n_puntos"] == 12
+
+
+def test_generar_sin_pm25_no_crashea(tmp_path):
+    """Una fuente de aire caída no debe tumbar ingesta: meta sin_datos y salida 0."""
+    from src.transform.superficie_idw import generar
+
+    lake = tmp_path / "lake"
+    d = lake / "serving" / "indicador_diario" / "fecha=2025-01-15"
+    d.mkdir(parents=True, exist_ok=True)
+    df = _fake()
+    df["pm25_media"] = np.nan
+    df.to_parquet(d / "indicador_diario.parquet", index=False)
+    meta = generar("2025-01-15", lake)
+    assert meta["estado"] == "sin_datos"
+    dest = lake / "serving" / "superficies" / "fecha=2025-01-15"
+    assert not (dest / "pm25.png").exists()
+    assert json.loads((dest / "meta.json").read_text())["estado"] == "sin_datos"
+
+
+def test_generar_sin_columna_pm25_no_crashea(tmp_path):
+    from src.transform.superficie_idw import generar
+
+    lake = tmp_path / "lake"
+    d = lake / "serving" / "indicador_diario" / "fecha=2025-01-15"
+    d.mkdir(parents=True, exist_ok=True)
+    _fake().drop(columns=["pm25_media"]).to_parquet(d / "indicador_diario.parquet", index=False)
+    meta = generar("2025-01-15", lake)
+    assert meta["estado"] == "sin_datos"

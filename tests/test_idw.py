@@ -1,5 +1,6 @@
 """Tests de la superficie IDW (sintéticos, sin red)."""
 import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd

@@ -152,7 +152,7 @@ def transformar(fecha: str, lake: str | Path = "lake") -> dict:
 
         d1 = lake / "serving" / "indicador_diario" / f"fecha={fecha}"
         d1.mkdir(parents=True, exist_ok=True)
-        oro.to_parquet(d1 / "indicador_diario.parquet", index=False)
+        oro.drop(columns=["fecha"]).to_parquet(d1 / "indicador_diario.parquet", index=False)
         salidas["indicador_diario"] = str(d1)
         print(f"[transform] oro indicador_diario: {len(oro)} filas -> {d1}", flush=True)
 
@@ -172,7 +172,7 @@ def transformar(fecha: str, lake: str | Path = "lake") -> dict:
         )
         d2 = lake / "serving" / "indicador_pais" / f"fecha={fecha}"
         d2.mkdir(parents=True, exist_ok=True)
-        g.to_parquet(d2 / "indicador_pais.parquet", index=False)
+        g.drop(columns=["fecha"]).to_parquet(d2 / "indicador_pais.parquet", index=False)
         salidas["indicador_pais"] = str(d2)
         print(f"[transform] oro indicador_pais: {len(g)} filas -> {d2}", flush=True)
     finally:

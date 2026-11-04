@@ -17,6 +17,14 @@ def _fake(n=12, seed=3):
     })
 
 
+def _write_serving(lake: Path, fecha: str, df: pd.DataFrame) -> None:
+    """Escribe parquet en serving/indicador_diario/fecha=... sin conflicto de partición."""
+    d = lake / "serving" / "indicador_diario" / f"fecha={fecha}"
+    d.mkdir(parents=True, exist_ok=True)
+    # Escribir SIN la columna fecha (ya está en la ruta) para evitar inferencia de partición Hive.
+    df.drop(columns=["fecha"]).to_parquet(d / "indicador_diario.parquet", index=False)
+
+
 def test_idw_forma_y_decaimiento(tmp_path):
     from src.transform.superficie_idw import LAT0, LAT1, LON0, LON1, RES, idw_grid
 
@@ -47,9 +55,7 @@ def test_generar_idempotente(tmp_path):
     from src.transform.superficie_idw import generar
 
     lake = tmp_path / "lake"
-    d = lake / "serving" / "indicador_diario" / "fecha=2025-01-15"
-    d.mkdir(parents=True, exist_ok=True)
-    _fake().to_parquet(d / "indicador_diario.parquet", index=False)
+    _write_serving(lake, "2025-01-15", _fake())
     m1 = generar("2025-01-15", lake)
     m2 = generar("2025-01-15", lake)
     assert m1 == m2
@@ -63,11 +69,9 @@ def test_generar_sin_pm25_no_crashea(tmp_path):
     from src.transform.superficie_idw import generar
 
     lake = tmp_path / "lake"
-    d = lake / "serving" / "indicador_diario" / "fecha=2025-01-15"
-    d.mkdir(parents=True, exist_ok=True)
     df = _fake()
     df["pm25_media"] = np.nan
-    df.to_parquet(d / "indicador_diario.parquet", index=False)
+    _write_serving(lake, "2025-01-15", df)
     meta = generar("2025-01-15", lake)
     assert meta["estado"] == "sin_datos"
     dest = lake / "serving" / "superficies" / "fecha=2025-01-15"
@@ -79,8 +83,6 @@ def test_generar_sin_columna_pm25_no_crashea(tmp_path):
     from src.transform.superficie_idw import generar
 
     lake = tmp_path / "lake"
-    d = lake / "serving" / "indicador_diario" / "fecha=2025-01-15"
-    d.mkdir(parents=True, exist_ok=True)
-    _fake().drop(columns=["pm25_media"]).to_parquet(d / "indicador_diario.parquet", index=False)
+    _write_serving(lake, "2025-01-15", _fake().drop(columns=["pm25_media"]))
     meta = generar("2025-01-15", lake)
     assert meta["estado"] == "sin_datos"

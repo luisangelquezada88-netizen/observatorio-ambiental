@@ -1,0 +1,21 @@
+{
+ "fecha": "2026-10-26",
+ "estado": "sin_datos",
+ "motivo": "sin serving diario",
+ "n_puntos": 0,
+ "res_grados": 0.25,
+ "p": 2.0,
+ "corte_km": 800.0,
+ "niveles_aqi": [
+  0,
+  12,
+  35.4,
+  55.4,
+  150.4,
+  250.4,
+  600
+ ],
+ "rmse_loo_ugm3": null,
+ "pm25_min": null,
+ "pm25_max": null
+}

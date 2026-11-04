@@ -244,8 +244,17 @@ m
 #| fig-cap: "Temperatura media por país"
 import plotly.express as px
 
-pfiles = sorted(Path("../lake/serving/indicador_pais").glob("fecha=*/indicador_pais.parquet"))
-pp = pd.concat([pd.read_parquet(f) for f in pfiles], ignore_index=True) if pfiles else pd.DataFrame()
+# Leer indicador_pais particionado igual que indicador_diario
+pdirs = sorted(Path("../lake/serving/indicador_pais").glob("fecha=*/"))
+pframes = []
+for d in pdirs:
+    try:
+        part = pd.read_parquet(d)
+        part["fecha"] = d.name.replace("fecha=", "")
+        pframes.append(part)
+    except Exception:
+        pass
+pp = pd.concat(pframes, ignore_index=True) if pframes else pd.DataFrame()
 ppu = pp[pp["fecha"] == ult].copy() if not pp.empty else pp
 figt = px.choropleth(ppu, locations="iso3", color="temp_media_pais", hover_name="pais",
                      color_continuous_scale="RdYlBu_r",

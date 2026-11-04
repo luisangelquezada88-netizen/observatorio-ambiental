@@ -9,8 +9,16 @@ lang: es
 from pathlib import Path
 import pandas as pd
 
-files = sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/indicador_diario.parquet"))
-df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True) if files else pd.DataFrame()
+dirs = sorted(Path("../lake/serving/indicador_diario").glob("fecha=*/"))
+frames = []
+for d in dirs:
+    try:
+        part = pd.read_parquet(d)
+        part["fecha"] = d.name.replace("fecha=", "")
+        frames.append(part)
+    except Exception:
+        pass
+df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 ult = df["fecha"].max() if not df.empty else "s/d"
 base = df[df["fecha"] == ult].copy() if not df.empty else df
 
